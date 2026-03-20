@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AGRA Kiosk Admin</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #08090B;
+      --bg2:        #0f1112;
+      --bg3:        #161a1b;
+      --border:     rgba(255,255,255,0.08);
+      --border2:    rgba(255,255,255,0.13);
+      --text:       #f0f4f2;
+      --text2:      rgba(240,244,242,0.5);
+      --text3:      rgba(240,244,242,0.25);
+      --primary:    #2F6F5E;
+      --primary-bg: rgba(47,111,94,0.15);
+      --primary-bd: rgba(47,111,94,0.40);
+      --red:        #FF003C;
+      --red-bg:     rgba(255,0,60,0.12);
+      --red-bd:     rgba(255,0,60,0.35);
+      --blue:       #60A5FA;
+      --blue-bg:    rgba(96,165,250,0.12);
+      --blue-bd:    rgba(96,165,250,0.35);
+      --radius:     14px;
+      --radius-sm:  9px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Layout ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 40px; height: 40px; border-radius: 11px;
+      background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 18px; color: #fff;
+      flex-shrink: 0;
+    }
+    .logo-text p:first-child { font-weight: 700; font-size: 17px; }
+    .logo-text p:last-child  { font-size: 11px; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; }
+
+    .mode-badge {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border-radius: var(--radius-sm);
+      border: 1px solid; font-size: 13px; font-weight: 600;
+    }
+    .mode-badge .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .btn-logout {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border2);
+      color: var(--text2); background: transparent;
+      cursor: pointer; font-size: 13px; transition: color .15s;
+    }
+    .btn-logout:hover { color: var(--text); }
+
+    .body {
+      display: flex; flex: 1; min-height: 0;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 210px; flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      padding: 20px 10px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent; color: var(--text2);
+      cursor: pointer; font-size: 14px; font-weight: 500;
+      transition: all .15s; text-align: left; width: 100%;
+    }
+    .nav-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
+    .nav-btn.active {
+      color: var(--primary); background: var(--primary-bg);
+      border-color: var(--primary-bd);
+    }
+    .nav-btn svg { flex-shrink: 0; }
+
+    /* ── Content ── */
+    .content {
+      flex: 1; overflow-y: auto;
+      padding: 36px 40px;
+    }
+    .section { display: none; max-width: 680px; }
+    .section.active { display: block; }
+
+    .section-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .section-sub   { color: var(--text3); font-size: 13px; margin-bottom: 28px; }
+
+    /* ── Cards / Rows ── */
+    .card {
+      background: rgba(255,255,255,.025);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin-bottom: 14px;
+    }
+    .card-label {
+      font-size: 11px; font-weight: 600; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--text3);
+      margin-bottom: 14px;
+    }
+
+    /* ── Mode buttons ── */
+    .mode-grid { display: flex; flex-direction: column; gap: 10px; }
+    .mode-btn {
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px 20px; border-radius: var(--radius);
+      border: 2px solid var(--border); background: rgba(255,255,255,.02);
+      cursor: pointer; text-align: left; transition: all .18s; width: 100%;
+      color: var(--text);
+    }
+    .mode-btn:hover { border-color: var(--border2); }
+    .mode-btn .mode-icon {
+      width: 44px; height: 44px; border-radius: 11px;
+      background: rgba(255,255,255,.05);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .mode-btn .mode-info p:first-child { font-weight: 700; font-size: 16px; }
+    .mode-btn .mode-info p:last-child  { font-size: 13px; color: var(--text3); margin-top: 2px; }
+    .mode-btn .active-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: currentColor; margin-left: auto; flex-shrink: 0;
+      opacity: 0;
+    }
+    .mode-btn.selected .active-dot { opacity: 1; }
+
+    .mode-btn.week.selected   { border-color: var(--primary-bd); background: var(--primary-bg); color: var(--primary); }
+    .mode-btn.event.selected  { border-color: var(--blue-bd);    background: var(--blue-bg);    color: var(--blue); }
+    .mode-btn.emergency.selected { border-color: var(--red-bd); background: var(--red-bg); color: var(--red); }
+
+    .mode-btn.week .mode-icon   { color: var(--primary); }
+    .mode-btn.event .mode-icon  { color: var(--blue); }
+    .mode-btn.emergency .mode-icon { color: var(--red); }
+
+    /* ── Emergency type grid ── */
+    .etype-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .etype-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 16px; border-radius: var(--radius-sm);
+      border: 2px solid var(--border); background: rgba(255,255,255,.02);
+      cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text2);
+      transition: all .15s; text-align: left;
+    }
+    .etype-btn:hover { border-color: var(--border2); color: var(--text); }
+    .etype-btn.selected { border-color: var(--red-bd); background: var(--red-bg); color: var(--red); }
+    .etype-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); margin-left: auto; opacity: 0; }
+    .etype-btn.selected .etype-dot { opacity: 1; }
+
+    /* ── Inputs ── */
+    textarea, input[type=text], input[type=url], input[type=number] {
+      width: 100%; background: rgba(255,255,255,.04);
+      border: 1px solid var(--border2); border-radius: var(--radius-sm);
+      color: var(--text); font-family: inherit; font-size: 14px;
+      padding: 11px 14px; outline: none; transition: border-color .15s;
+      resize: vertical;
+    }
+    textarea:focus, input:focus { border-color: var(--primary); }
+    textarea::placeholder, input::placeholder { color: var(--text3); }
+
+    /* ── Idle timeout ── */
+    .timeout-row {
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px 20px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: rgba(255,255,255,.02);
+      margin-bottom: 14px;
+    }
+    .timeout-row svg { color: var(--primary); flex-shrink: 0; }
+    .timeout-row .timeout-label { flex: 1; }
+    .timeout-row .timeout-label p:first-child { font-weight: 500; }
+    .timeout-row .timeout-label p:last-child   { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .timeout-controls { display: flex; align-items: center; gap: 10px; }
+    .timeout-btn {
+      width: 38px; height: 38px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border2); background: rgba(255,255,255,.04);
+      color: var(--text2); font-size: 20px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: color .15s;
+    }
+    .timeout-btn:hover { color: var(--text); }
+    .timeout-val { font-size: 22px; font-weight: 700; width: 64px; text-align: center; }
+    .preset-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .preset-btn {
+      padding: 7px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,.03);
+      color: var(--text3); font-size: 13px; cursor: pointer;
+      transition: all .15s;
+    }
+    .preset-btn:hover { color: var(--text); border-color: var(--border2); }
+    .preset-btn.active { color: var(--primary); background: var(--primary-bg); border-color: var(--primary-bd); }
+
+    /* ── Screensaver images ── */
+    .img-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .img-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,.02);
+    }
+    .img-thumb {
+      width: 60px; height: 38px; border-radius: 6px;
+      object-fit: cover; background: rgba(255,255,255,.04);
+      flex-shrink: 0;
+    }
+    .img-url { flex: 1; font-size: 13px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .img-del {
+      width: 30px; height: 30px; border-radius: 7px;
+      border: none; background: transparent; color: var(--text3);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all .15s; flex-shrink: 0;
+    }
+    .img-del:hover { color: var(--red); background: var(--red-bg); }
+    .img-add-row { display: flex; gap: 10px; }
+    .btn-add {
+      display: flex; align-items: center; gap: 7px;
+      padding: 10px 18px; border-radius: var(--radius-sm);
+      border: 1px solid var(--primary-bd); background: var(--primary-bg);
+      color: var(--primary); font-size: 13px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: background .15s;
+    }
+    .btn-add:hover { background: rgba(47,111,94,.25); }
+    .empty-state {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); color: var(--text3); font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    /* ── Info box ── */
+    .info-box {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,.02);
+      color: var(--text3); font-size: 13px; line-height: 1.6;
+      margin-top: 14px;
+    }
+    .info-box svg { flex-shrink: 0; margin-top: 1px; }
+    .info-box code { color: rgba(47,111,94,.8); font-size: 12px; }
+
+    /* ── Export ── */
+    .json-box {
+      position: relative; background: rgba(255,255,255,.03);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; margin-bottom: 20px;
+    }
+    .json-box pre {
+      font-family: 'Consolas','Fira Code',monospace;
+      font-size: 13px; color: rgba(47,111,94,.9);
+      white-space: pre-wrap; line-height: 1.7;
+    }
+    .btn-copy {
+      position: absolute; top: 12px; right: 12px;
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 13px; border-radius: 8px;
+      border: 1px solid var(--border2); background: rgba(255,255,255,.06);
+      color: var(--text2); font-size: 12px; cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-copy:hover { color: var(--text); }
+    .btn-copy.copied { color: var(--primary); border-color: var(--primary-bd); }
+
+    .steps ol { padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .steps li { display: flex; align-items: flex-start; gap: 12px; font-size: 13px; color: var(--text2); }
+    .steps .num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--primary-bg); color: var(--primary);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .steps code { color: rgba(47,111,94,.7); font-size: 12px; }
+
+    /* ── Server save button ── */
+    .btn-server-save {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 20px; border-radius: var(--radius-sm);
+      border: 1px solid var(--blue-bd); background: var(--blue-bg);
+      color: var(--blue); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background .15s; margin-bottom: 20px;
+    }
+    .btn-server-save:hover { background: rgba(96,165,250,.22); }
+    .btn-server-save:disabled { opacity: .4; cursor: default; }
+
+    /* ── Save bar ── */
+    .savebar {
+      flex-shrink: 0; border-top: 1px solid var(--border);
+      padding: 16px 32px; display: flex; align-items: center;
+      justify-content: space-between; gap: 16px;
+      background: var(--bg);
+    }
+    .savebar p { font-size: 13px; color: var(--text3); }
+    .btn-save {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 24px; border-radius: var(--radius-sm);
+      border: 1px solid var(--primary);
+      background: var(--primary); color: #fff;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-save:hover { background: rgba(47,111,94,.85); }
+    .btn-save.saved { background: var(--primary-bg); color: var(--primary); border-color: var(--primary-bd); }
+
+    /* ── PIN screen ── */
+    #pin-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    .pin-wrap { display: flex; flex-direction: column; align-items: center; gap: 36px; }
+    .pin-logo {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .pin-logo .logo { width: 56px; height: 56px; font-size: 24px; }
+    .pin-logo p:first-of-type { font-weight: 700; font-size: 20px; }
+    .pin-logo p:last-of-type  { font-size: 12px; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; }
+    .pin-inputs { display: flex; gap: 14px; }
+    .pin-input {
+      width: 60px; height: 60px; text-align: center;
+      font-size: 22px; font-weight: 700; border-radius: 14px;
+      background: rgba(255,255,255,.06); border: 2px solid var(--border);
+      color: var(--text); outline: none; transition: border-color .15s;
+      /* override body overflow:hidden on mobile */
+      -webkit-user-select: text; user-select: text;
+    }
+    .pin-input:focus { border-color: var(--primary); background: rgba(255,255,255,.08); }
+    .pin-input.filled { border-color: var(--primary); }
+    .pin-input.error  { border-color: var(--red); animation: shake .3s; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    .pin-hint { font-size: 14px; color: var(--text2); }
+    .pin-error { font-size: 13px; color: var(--red); min-height: 20px; }
+    .pin-show {
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: none; color: var(--text3);
+      font-size: 12px; cursor: pointer; transition: color .15s;
+    }
+    .pin-show:hover { color: var(--text2); }
+
+    /* ── Warning banner ── */
+    .warn-banner {
+      display: none; align-items: center; gap: 10px;
+      padding: 12px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--red-bd); background: var(--red-bg);
+      color: var(--red); font-size: 13px; margin-bottom: 20px;
+    }
+    .warn-banner.show { display: flex; }
+
+    /* Upload */
+    .upload-zone {
+      border: 2px dashed var(--border2); border-radius: var(--radius);
+      padding: 32px 20px; text-align: center; cursor: pointer;
+      transition: all .18s; margin-bottom: 14px;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--primary); background: var(--primary-bg); }
+    .upload-zone input { display: none; }
+    .upload-zone svg { color: var(--text3); margin-bottom: 10px; }
+    .upload-zone p { color: var(--text3); font-size: 13px; }
+    .upload-zone p strong { color: var(--primary); }
+    .upload-progress {
+      display: none; padding: 12px 16px; border-radius: var(--radius-sm);
+      background: var(--primary-bg); border: 1px solid var(--primary-bd);
+      color: var(--primary); font-size: 13px; margin-bottom: 14px;
+    }
+    .upload-progress.show { display: block; }
+
+    /* Schedule */
+    .schedule-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .schedule-row {
+      background: rgba(255,255,255,.02); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px;
+    }
+    .schedule-row .row-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .schedule-row .row-top img { width: 56px; height: 36px; object-fit: cover; border-radius: 6px; background: rgba(255,255,255,.04); }
+    .schedule-row .row-label { flex: 1; font-size: 13px; color: var(--text2); font-weight: 500; }
+    .schedule-row .row-del {
+      width: 28px; height: 28px; border-radius: 7px; border: none;
+      background: transparent; color: var(--text3); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all .15s;
+    }
+    .schedule-row .row-del:hover { color: var(--red); background: var(--red-bg); }
+    .day-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .day-chip {
+      padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border); background: transparent; color: var(--text3);
+      cursor: pointer; transition: all .15s;
+    }
+    .day-chip.active { background: var(--primary-bg); border-color: var(--primary-bd); color: var(--primary); }
+    .time-row { display: flex; align-items: center; gap: 10px; }
+    .time-row label { font-size: 12px; color: var(--text3); white-space: nowrap; }
+    .time-input {
+      background: rgba(255,255,255,.04); border: 1px solid var(--border2);
+      border-radius: 8px; color: var(--text); font-family: inherit;
+      font-size: 14px; padding: 7px 10px; outline: none; width: 100px;
+      transition: border-color .15s;
+    }
+    .time-input:focus { border-color: var(--primary); }
+    .schedule-add {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 18px; border-radius: var(--radius-sm);
+      border: 1px dashed var(--border2); background: transparent;
+      color: var(--text3); font-size: 13px; font-weight: 500;
+      cursor: pointer; width: 100%; justify-content: center;
+      transition: all .15s;
+    }
+    .schedule-add:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PIN SCREEN
+══════════════════════════════════════════════════════════════ -->
+<div id="pin-screen">
+  <div class="pin-wrap">
+    <div class="pin-logo">
+      <div class="logo">A</div>
+      <p>AGRA Admin</p>
+      <p>Kiosk Steuerung</p>
+    </div>
+    <p class="pin-hint">PIN eingeben</p>
+    <div class="pin-inputs">
+      <input class="pin-input" id="p0" type="password" inputmode="numeric" maxlength="1" autocomplete="off" autofocus />
+      <input class="pin-input" id="p1" type="password" inputmode="numeric" maxlength="1" autocomplete="off" />
+      <input class="pin-input" id="p2" type="password" inputmode="numeric" maxlength="1" autocomplete="off" />
+      <input class="pin-input" id="p3" type="password" inputmode="numeric" maxlength="1" autocomplete="off" />
+    </div>
+    <p class="pin-error" id="pin-error"></p>
+    <button class="pin-show" id="pin-show-btn" onclick="togglePinVis()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      PIN anzeigen
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════════════════════ -->
+<div id="app" style="display:none; flex-direction:column; min-height:100vh; flex:1;">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo">A</div>
+      <div class="logo-text">
+        <p>AGRA Admin</p>
+        <p>Kiosk Steuerung</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="mode-badge" id="mode-badge">
+        <span class="dot"></span>
+        <span id="badge-label">Wochenmodus</span>
+      </div>
+      <button class="btn-logout" onclick="logout()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Abmelden
+      </button>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <button class="nav-btn active" onclick="showSection('mode', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Modus
+      </button>
+      <button class="nav-btn" onclick="showSection('emergency', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Notfall
+      </button>
+      <button class="nav-btn" onclick="showSection('screensaver', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Screensaver
+      </button>
+      <button class="nav-btn" onclick="showSection('schedule', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2"/></svg>
+        Zeitplan
+      </button>
+      <button class="nav-btn" onclick="showSection('system', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        System
+      </button>
+      <button class="nav-btn" onclick="showSection('export', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Export
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- MODUS -->
+      <div class="section active" id="sec-mode">
+        <p class="section-title">Systemmodus</p>
+        <p class="section-sub">Wechselt alle Stelen innerhalb von 30 Sekunden (nach Server-Speicherung)</p>
+        <div class="mode-grid">
+          <button class="mode-btn week" onclick="setMode('week')">
+            <div class="mode-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <div class="mode-info">
+              <p>Wochenmodus</p>
+              <p>Zeigt kommende Veranstaltungen und Geländeplan</p>
+            </div>
+            <div class="active-dot"></div>
+          </button>
+          <button class="mode-btn event" onclick="setMode('event')">
+            <div class="mode-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="mode-info">
+              <p>Eventmodus</p>
+              <p>Zeigt aktive Messe / Veranstaltung mit Standplan</p>
+            </div>
+            <div class="active-dot"></div>
+          </button>
+          <button class="mode-btn emergency" onclick="setMode('emergency')">
+            <div class="mode-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="mode-info">
+              <p>Notfall</p>
+              <p>Überblendet alle Stelen mit dem Notfall-Overlay</p>
+            </div>
+            <div class="active-dot"></div>
+          </button>
+        </div>
+        <div class="warn-banner" id="emergency-warn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Notfallmodus aktiv. Alle Stelen zeigen das Notfall-Overlay. Typ und Nachricht unter „Notfall" festlegen.
+        </div>
+      </div>
+
+      <!-- NOTFALL -->
+      <div class="section" id="sec-emergency">
+        <p class="section-title">Notfall-Einstellungen</p>
+        <p class="section-sub">Wird angezeigt wenn der Modus auf „Notfall" gestellt ist</p>
+        <div class="card">
+          <p class="card-label">Notfall-Typ</p>
+          <div class="etype-grid">
+            <button class="etype-btn" id="etype-evacuation" onclick="setEtype('evacuation')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Evakuierung
+              <div class="etype-dot"></div>
+            </button>
+            <button class="etype-btn" id="etype-weather" onclick="setEtype('weather')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>
+              Wetterwarnung
+              <div class="etype-dot"></div>
+            </button>
+            <button class="etype-btn" id="etype-security" onclick="setEtype('security')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Sicherheitshinweis
+              <div class="etype-dot"></div>
+            </button>
+            <button class="etype-btn" id="etype-general" onclick="setEtype('general')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Allgemein
+              <div class="etype-dot"></div>
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <p class="card-label">Nachricht (optional)</p>
+          <textarea id="emergency-message" rows="3"
+            placeholder="z. B.: Bitte verlassen Sie sofort das Gebäude über die markierten Ausgänge."
+            oninput="cfg.emergency_message = this.value || null"></textarea>
+          <p style="font-size:12px;color:var(--text3);margin-top:8px;">Leer lassen für keine zusätzliche Nachricht</p>
+        </div>
+      </div>
+
+      <!-- SCREENSAVER -->
+      <div class="section" id="sec-screensaver">
+        <p class="section-title">Screensaver-Bilder</p>
+        <p class="section-sub">Diashow wenn keine Interaktion stattfindet. Bilder direkt hochladen oder per URL hinzufügen.</p>
+
+        <!-- Upload-Zone -->
+        <div class="upload-zone" id="upload-zone"
+          onclick="document.getElementById('file-input').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event)">
+          <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)" />
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p><strong>Bild hochladen</strong> oder hierher ziehen</p>
+          <p style="margin-top:4px;font-size:11px;">JPG, PNG, WebP · max. 4 MB</p>
+        </div>
+        <div class="upload-progress" id="upload-progress">⏳ Wird hochgeladen...</div>
+
+        <div class="img-list" id="img-list"></div>
+
+        <!-- Manuell per URL -->
+        <details style="margin-top:8px;">
+          <summary style="font-size:12px;color:var(--text3);cursor:pointer;user-select:none;">Oder per URL hinzufügen</summary>
+          <div class="img-add-row" style="margin-top:10px;">
+            <input type="url" id="new-img-url" placeholder="https://example.com/bild.jpg"
+              onkeydown="if(event.key==='Enter') addImage()" />
+            <button class="btn-add" onclick="addImage()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Hinzufügen
+            </button>
+          </div>
+        </details>
+      </div>
+
+      <!-- ZEITPLAN -->
+      <div class="section" id="sec-schedule">
+        <p class="section-title">Zeitplan</p>
+        <p class="section-sub">An bestimmten Wochentagen und Uhrzeiten ein Bild statt der Diashow zeigen</p>
+        <div class="schedule-list" id="schedule-list"></div>
+        <button class="schedule-add" onclick="addScheduleEntry()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Neuen Zeitplan-Eintrag hinzufügen
+        </button>
+        <div class="info-box" style="margin-top:16px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Wenn ein Zeitplan aktiv ist, ersetzt das Bild komplett die normale Diashow.
+          Die Stele prüft den Zeitplan jede Minute.
+        </div>
+      </div>
+
+      <!-- SYSTEM -->
+      <div class="section" id="sec-system">
+        <p class="section-title">Systemeinstellungen</p>
+        <p class="section-sub">Allgemeine Kiosk-Parameter</p>
+        <p class="card-label" style="margin-bottom:10px;">Idle-Timeout</p>
+        <div class="timeout-row">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="timeout-label">
+            <p>Screensaver nach</p>
+            <p>Sekunden ohne Interaktion</p>
+          </div>
+          <div class="timeout-controls">
+            <button class="timeout-btn" onclick="adjustTimeout(-10)">−</button>
+            <span class="timeout-val" id="timeout-val">60s</span>
+            <button class="timeout-btn" onclick="adjustTimeout(10)">+</button>
+          </div>
+        </div>
+        <div class="preset-row" id="preset-row">
+          <button class="preset-btn" onclick="setTimeout2(30)">30s</button>
+          <button class="preset-btn" onclick="setTimeout2(60)">60s</button>
+          <button class="preset-btn" onclick="setTimeout2(90)">90s</button>
+          <button class="preset-btn" onclick="setTimeout2(120)">120s</button>
+          <button class="preset-btn" onclick="setTimeout2(180)">180s</button>
+        </div>
+        <div class="info-box" style="margin-top:20px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Minimum: 10 Sekunden · Maximum: 300 Sekunden
+        </div>
+      </div>
+
+      <!-- EXPORT -->
+      <div class="section" id="sec-export">
+        <p class="section-title">Config exportieren</p>
+        <p class="section-sub">Diese JSON auf dem Server als <code style="color:rgba(47,111,94,.7)">/config/kiosk-config.json</code> speichern – alle Stelen übernehmen sie in ≤ 30 Sekunden</p>
+
+        <button class="btn-server-save" id="btn-server-save" onclick="saveToServer()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Direkt auf Server speichern
+        </button>
+
+        <div class="json-box">
+          <pre id="json-preview"></pre>
+          <button class="btn-copy" id="copy-btn" onclick="copyJson()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Kopieren
+          </button>
+        </div>
+
+        <div class="card steps">
+          <p class="card-label">Anleitung (manuell)</p>
+          <ol>
+            <li><span class="num">1</span> JSON oben kopieren</li>
+            <li><span class="num">2</span> Auf dem Webserver <code>public/config/kiosk-config.json</code> öffnen</li>
+            <li><span class="num">3</span> Inhalt ersetzen und speichern</li>
+            <li><span class="num">4</span> Alle Stelen übernehmen die Änderung innerhalb von 30 Sekunden</li>
+          </ol>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /body -->
+
+  <!-- Save bar -->
+  <div class="savebar">
+    <p>Änderungen wirken sofort auf dieser Stele · Alle anderen Stelen: JSON exportieren → Server speichern</p>
+    <button class="btn-save" id="btn-save" onclick="saveLocal()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Auf dieser Stele speichern
+    </button>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  CONFIG – hier anpassen
+// ═══════════════════════════════════════════════════════════════
+const ADMIN_PIN = '4081';
+// ── Server-Endpunkte ─────────────────────────────────────────────────────
+// Netlify (aktuell aktiv):
+const CONFIG_PATH      = 'https://kalamo1971.netlify.app/.netlify/functions/get-config';
+const SAVE_ENDPOINT    = 'https://kalamo1971.netlify.app/.netlify/functions/save-config';
+const UPLOAD_ENDPOINT  = 'https://kalamo1971.netlify.app/.netlify/functions/upload-image';
+// Eigener Server später (auskommentiert):
+// const CONFIG_PATH   = '/config/kiosk-config.json';
+// const SAVE_ENDPOINT = '/config/save-config.php';
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let cfg = {
+  system_mode: 'week',
+  idle_timeout_seconds: 60,
+  slideshow_images: [],
+  scheduled_overrides: [],
+  emergency_type: 'evacuation',
+  emergency_message: null,
+  active_event_id: null
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  PIN
+// ═══════════════════════════════════════════════════════════════
+const pinInputs = [0,1,2,3].map(i => document.getElementById('p'+i));
+
+pinInputs.forEach((inp, i) => {
+  inp.addEventListener('input', () => {
+    // Nur erste Ziffer behalten
+    const v = inp.value.replace(/\D/g,'').slice(0,1);
+    inp.value = v;
+    inp.classList.toggle('filled', !!v);
+    if (v) {
+      if (i < 3) {
+        pinInputs[i+1].focus();
+      } else {
+        checkPin();
+      }
+    }
+  });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !inp.value && i > 0) {
+      pinInputs[i-1].value = '';
+      pinInputs[i-1].classList.remove('filled');
+      pinInputs[i-1].focus();
+    }
+  });
+  // Beim Fokus immer gesamten Inhalt selektieren
+  inp.addEventListener('click', () => inp.select());
+});
+
+function checkPin() {
+  const pin = pinInputs.map(p => p.value).join('');
+  if (pin === ADMIN_PIN) {
+    sessionStorage.setItem('agra_admin', '1');
+    showApp();
+  } else {
+    pinInputs.forEach(p => p.classList.add('error'));
+    document.getElementById('pin-error').textContent = 'Falscher PIN';
+    setTimeout(() => {
+      pinInputs.forEach(p => { p.value=''; p.classList.remove('filled','error'); });
+      document.getElementById('pin-error').textContent = '';
+      pinInputs[0].focus();
+    }, 700);
+  }
+}
+
+function togglePinVis() {
+  const t = pinInputs[0].type === 'password' ? 'text' : 'password';
+  pinInputs.forEach(p => p.type = t);
+  document.getElementById('pin-show-btn').textContent = t === 'text' ? '🙈 PIN verbergen' : '👁 PIN anzeigen';
+}
+
+function logout() {
+  sessionStorage.removeItem('agra_admin');
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+async function showApp() {
+  document.getElementById('pin-screen').style.display = 'none';
+  const app = document.getElementById('app');
+  app.style.display = 'flex';
+
+  // Config laden: erst Server, dann localStorage-Override
+  try {
+    const res = await fetch(CONFIG_PATH + '?t=' + Date.now());
+    if (res.ok) {
+      const data = await res.json();
+      cfg = { ...cfg, ...data };
+    }
+  } catch(e) {
+    console.warn('Server-Config nicht erreichbar, nutze localStorage');
+    const local = localStorage.getItem('agra_kiosk_config');
+    if (local) cfg = { ...cfg, ...JSON.parse(local) };
+  }
+
+  renderAll();
+  pinInputs[0].focus();
+}
+
+if (sessionStorage.getItem('agra_admin') === '1') {
+  showApp();
+} else {
+  document.getElementById('pin-screen').style.display = 'flex';
+  setTimeout(() => { pinInputs[0].focus(); pinInputs[0].select(); }, 100);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════
+const MODE_LABELS = { week: 'Wochenmodus', event: 'Eventmodus', emergency: 'NOTFALL' };
+const MODE_COLORS = {
+  week:      { color: 'var(--primary)', border: 'var(--primary-bd)', bg: 'var(--primary-bg)' },
+  event:     { color: 'var(--blue)',    border: 'var(--blue-bd)',    bg: 'var(--blue-bg)' },
+  emergency: { color: 'var(--red)',     border: 'var(--red-bd)',     bg: 'var(--red-bg)' },
+};
+
+function renderAll() {
+  // Badge
+  const mc = MODE_COLORS[cfg.system_mode] || MODE_COLORS.week;
+  const badge = document.getElementById('mode-badge');
+  badge.style.color = mc.color;
+  badge.style.borderColor = mc.border;
+  badge.style.background = mc.bg;
+  document.getElementById('badge-label').textContent = MODE_LABELS[cfg.system_mode] || cfg.system_mode;
+
+  // Mode buttons
+  ['week','event','emergency'].forEach(m => {
+    document.querySelector('.mode-btn.'+m)?.classList.toggle('selected', cfg.system_mode === m);
+  });
+
+  // Emergency warn
+  document.getElementById('emergency-warn').classList.toggle('show', cfg.system_mode === 'emergency');
+
+  // Emergency type
+  ['evacuation','weather','security','general'].forEach(t => {
+    document.getElementById('etype-'+t)?.classList.toggle('selected', cfg.emergency_type === t);
+  });
+
+  // Emergency message
+  document.getElementById('emergency-message').value = cfg.emergency_message || '';
+
+  // Timeout
+  renderTimeout();
+
+  // Images
+  renderImages();
+
+  // JSON preview
+  renderJson();
+
+  // Zeitplan
+  renderSchedule();
+}
+
+function renderTimeout() {
+  const v = cfg.idle_timeout_seconds || 60;
+  document.getElementById('timeout-val').textContent = v + 's';
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.textContent) === v);
+  });
+}
+
+function renderImages() {
+  const list = document.getElementById('img-list');
+  const imgs = cfg.slideshow_images || [];
+  if (imgs.length === 0) {
+    list.innerHTML = '<div class="empty-state"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Keine Bilder konfiguriert – Fallback-Bilder werden verwendet</div>';
+    return;
+  }
+  list.innerHTML = imgs.map((img, i) => `
+    <div class="img-row">
+      <img class="img-thumb" src="${escHtml(img.url)}" onerror="this.style.opacity='.2'" />
+      <span class="img-url">${escHtml(img.url)}</span>
+      <button class="img-del" onclick="removeImage(${i})" title="Entfernen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+// ── Upload ───────────────────────────────────────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) uploadFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) uploadFile(file);
+  e.target.value = '';
+}
+
+async function uploadFile(file) {
+  const MAX = 4 * 1024 * 1024;
+  if (file.size > MAX) { alert('Bild zu groß (max 4 MB)'); return; }
+
+  const prog = document.getElementById('upload-progress');
+  prog.textContent = '⏳ Wird hochgeladen...';
+  prog.classList.add('show');
+
+  try {
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    const resp = await fetch(UPLOAD_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _pin: ADMIN_PIN, imageData: base64, mimeType: file.type, filename: file.name })
+    });
+    const result = await resp.json();
+
+    if (result.success) {
+      var absoluteImageUrl = result.imageUrl.startsWith('http')
+        ? result.imageUrl
+        : 'https://kalamo1971.netlify.app' + result.imageUrl;
+      cfg.slideshow_images = [...(cfg.slideshow_images || []), { url: absoluteImageUrl }];
+      renderImages();
+      renderJson();
+      prog.textContent = '✓ Hochgeladen!';
+      prog.style.background = 'var(--primary-bg)';
+      prog.style.borderColor = 'var(--primary-bd)';
+      setTimeout(() => { prog.classList.remove('show'); prog.style.background=''; prog.style.borderColor=''; }, 2500);
+    } else {
+      throw new Error(result.error || 'Unbekannter Fehler');
+    }
+  } catch(err) {
+    prog.textContent = '⚠ Fehler: ' + err.message;
+    prog.style.background = 'var(--red-bg)';
+    prog.style.borderColor = 'var(--red-bd)';
+    prog.style.color = 'var(--red)';
+    setTimeout(() => { prog.classList.remove('show'); prog.style.background=''; prog.style.borderColor=''; prog.style.color=''; }, 4000);
+  }
+}
+
+// ── Zeitplan ─────────────────────────────────────────────────────────────────
+const DAY_LABELS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+
+function renderSchedule() {
+  var list = document.getElementById('schedule-list');
+  if (!list) return;
+  var entries = cfg.scheduled_overrides || [];
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="margin-bottom:0">Keine Zeitplan-Einträge</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i];
+    var dayChips = '';
+    for (var di = 0; di < DAY_LABELS.length; di++) {
+      var isActive = (entry.days || []).indexOf(di) !== -1;
+      dayChips += '<button class="day-chip' + (isActive ? ' active' : '') + '" onclick="toggleDay(' + i + ',' + di + ')">' + DAY_LABELS[di] + '</button>';
+    }
+    html += '<div class="schedule-row">';
+    html += '<div class="row-top">';
+    html += '<img class="img-thumb" src="' + escHtml(entry.imageUrl) + '" onerror="this.style.opacity=0.2" />';
+    html += '<span class="row-label">' + escHtml(entry.label || 'Kein Name') + '</span>';
+    html += '<button class="row-del" onclick="removeScheduleEntry(' + i + ')" title="Entfernen">';
+    html += '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+    html += '</button></div>';
+    html += '<div class="day-chips">' + dayChips + '</div>';
+    html += '<div class="time-row">';
+    html += '<label>Von</label>';
+    html += '<input class="time-input" type="time" value="' + (entry.timeFrom || '08:00') + '" onchange="updateScheduleTime(' + i + ', 0, this.value)" />';
+    html += '<label>bis</label>';
+    html += '<input class="time-input" type="time" value="' + (entry.timeTo || '20:00') + '" onchange="updateScheduleTime(' + i + ', 1, this.value)" />';
+    html += '</div></div>';
+  }
+  list.innerHTML = html;
+}
+function addScheduleEntry() {
+  var imgs = cfg.slideshow_images || [];
+  var imageUrl = '';
+  if (imgs.length > 0) {
+    var options = '';
+    for (var i = 0; i < imgs.length; i++) {
+      options += (i+1) + ': ' + imgs[i].url.slice(0,60) + '\n';
+    }
+    var choice = prompt('Welches Bild?\nNummer eingeben oder URL eintippen:\n' + options);
+    if (!choice) return;
+    var num = parseInt(choice);
+    if (!isNaN(num) && num >= 1 && num <= imgs.length) {
+      imageUrl = imgs[num-1].url;
+    } else {
+      imageUrl = choice.trim();
+    }
+  } else {
+    imageUrl = prompt('Bild-URL fuer diesen Zeitplan-Eintrag:');
+    if (!imageUrl) return;
+  }
+  var label = prompt('Name fuer diesen Eintrag:', 'Neuer Zeitplan') || 'Neuer Zeitplan';
+  if (!cfg.scheduled_overrides) cfg.scheduled_overrides = [];
+  cfg.scheduled_overrides.push({ label: label, imageUrl: imageUrl.trim(), days: [], timeFrom: '08:00', timeTo: '20:00' });
+  renderSchedule();
+  renderJson();
+}
+function removeScheduleEntry(i) {
+  cfg.scheduled_overrides.splice(i, 1);
+  renderSchedule(); renderJson();
+}
+function toggleDay(entryIdx, day) {
+  const entry = cfg.scheduled_overrides[entryIdx];
+  if (!entry.days) entry.days = [];
+  const idx = entry.days.indexOf(day);
+  if (idx === -1) entry.days.push(day);
+  else entry.days.splice(idx, 1);
+  renderSchedule(); renderJson();
+}
+function updateScheduleTime(entryIdx, fieldIdx, value) {
+  var field = fieldIdx === 0 ? 'timeFrom' : 'timeTo';
+  cfg.scheduled_overrides[entryIdx][field] = value;
+  renderJson();
+}
+
+function renderJson() {
+  const clean = {...cfg};
+  delete clean._comment;
+  document.getElementById('json-preview').textContent = JSON.stringify(clean, null, 2);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════════════════════
+function setMode(m) {
+  cfg.system_mode = m;
+  renderAll();
+}
+function setEtype(t) {
+  cfg.emergency_type = t;
+  renderAll();
+}
+function adjustTimeout(delta) {
+  cfg.idle_timeout_seconds = Math.max(10, Math.min(300, (cfg.idle_timeout_seconds||60) + delta));
+  renderTimeout();
+  renderJson();
+}
+function setTimeout2(v) {
+  cfg.idle_timeout_seconds = v;
+  renderTimeout();
+  renderJson();
+}
+function addImage() {
+  const inp = document.getElementById('new-img-url');
+  const url = inp.value.trim();
+  if (!url) return;
+  cfg.slideshow_images = [...(cfg.slideshow_images||[]), { url }];
+  inp.value = '';
+  renderImages();
+  renderJson();
+}
+function removeImage(i) {
+  cfg.slideshow_images.splice(i, 1);
+  renderImages();
+  renderJson();
+}
+
+// Lokale Speicherung (wirkt sofort auf diese Stele/Browser)
+function saveLocal() {
+  const clean = {...cfg}; delete clean._comment;
+  localStorage.setItem('agra_kiosk_config', JSON.stringify(clean));
+  const btn = document.getElementById('btn-save');
+  btn.classList.add('saved');
+  btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Gespeichert!';
+  setTimeout(() => {
+    btn.classList.remove('saved');
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Auf dieser Stele speichern';
+  }, 2500);
+}
+
+// JSON kopieren
+function copyJson() {
+  const clean = {...cfg}; delete clean._comment;
+  navigator.clipboard.writeText(JSON.stringify(clean, null, 2)).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Kopiert!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Kopieren';
+    }, 2500);
+  });
+}
+
+// Direkt auf Server speichern (funktioniert nur wenn die Datei per PUT schreibbar ist)
+// Für statische Server: JSON kopieren und manuell einfügen (Standard-Workflow)
+async function saveToServer() {
+  const btn = document.getElementById('btn-server-save');
+  const clean = {...cfg}; delete clean._comment;
+
+  // PIN wird mitgeschickt – der Server prüft ihn erneut
+  const payload = { ...clean, _pin: ADMIN_PIN };
+
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Speichern...';
+  try {
+    const res = await fetch(SAVE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (res.ok && result.success) {
+      btn.innerHTML = '✓ Gespeichert – Stelen übernehmen in ≤ 30s';
+      btn.style.color = 'var(--primary)';
+      btn.style.borderColor = 'var(--primary-bd)';
+      btn.style.background = 'var(--primary-bg)';
+    } else {
+      throw new Error(result.error || 'Status ' + res.status);
+    }
+  } catch(e) {
+    btn.innerHTML = '⚠ Fehler: ' + e.message + ' – JSON manuell kopieren';
+    btn.style.color = 'var(--text2)';
+    console.error('saveToServer:', e);
+  }
+  btn.disabled = false;
+  setTimeout(() => {
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Direkt auf Server speichern';
+    btn.style.color = ''; btn.style.borderColor = ''; btn.style.background = '';
+  }, 5000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function showSection(key, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-'+key).classList.add('active');
+  btn.classList.add('active');
+  if (key === 'export') renderJson();
+  if (key === 'schedule') renderSchedule();
+}
+</script>
+</body>
+</html>
