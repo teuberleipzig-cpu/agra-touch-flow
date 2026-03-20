@@ -1,5 +1,17 @@
+/**
+ * KioskContext.jsx – Base44-unabhängige Version
+ *
+ * Änderungen gegenüber der Originalversion:
+ *   - base44.entities.KioskConfig.list() + .subscribe() ersetzt durch
+ *     loadKioskConfig() aus src/config/weekModeConfig.js
+ *   - Periodisches Polling alle 30 Sekunden (ersetzt den Base44 Subscribe-Mechanismus)
+ *   - base44.entities.Event.filter() entfernt (im Wochenmodus nicht gebraucht)
+ *   - base44-Import vollständig entfernt
+ *
+ * Alles andere (Übersetzungen, Idle-Detection, Sprache, RTL) ist unverändert.
+ */
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { loadKioskConfig } from '@/config/weekModeConfig.js';
 
 const KioskContext = createContext();
 
@@ -190,6 +202,10 @@ const TRANSLATIONS = {
   }
 };
 
+// Polling-Intervall für die Kiosk-Konfiguration (in Millisekunden)
+// Die Stelen prüfen alle 30 Sekunden auf Modus-Änderungen vom Büro aus.
+const CONFIG_POLL_INTERVAL_MS = 30_000;
+
 export function KioskProvider({ children }) {
   const [language, setLanguage] = useState('de');
   const [systemMode, setSystemMode] = useState('week');
@@ -214,38 +230,32 @@ export function KioskProvider({ children }) {
     }, idleTimeout * 1000);
   }, [idleTimeout]);
 
-  // Load config
+  // Konfiguration laden und periodisch pollen
+  // Ersetzt: base44.entities.KioskConfig.list() + .subscribe()
   useEffect(() => {
-    const loadConfig = async () => {
-      const configs = await base44.entities.KioskConfig.list();
-      if (configs.length > 0) {
-        setConfig(configs[0]);
-        setSystemMode(configs[0].system_mode || 'week');
-      }
-    };
-    loadConfig();
+    let pollTimer = null;
+    let isMounted = true;
 
-    const unsubscribe = base44.entities.KioskConfig.subscribe((event) => {
-      if (event.type === 'update' || event.type === 'create') {
-        setConfig(event.data);
-        setSystemMode(event.data.system_mode || 'week');
-      }
-    });
-    return unsubscribe;
+    const fetchConfig = async () => {
+      const newConfig = await loadKioskConfig();
+      if (!isMounted) return;
+      setConfig(newConfig);
+      setSystemMode(newConfig.system_mode || 'week');
+    };
+
+    // Sofort beim Start laden
+    fetchConfig();
+
+    // Danach alle 30 Sekunden pollen (ermöglicht Modus-Wechsel vom Büro)
+    pollTimer = setInterval(fetchConfig, CONFIG_POLL_INTERVAL_MS);
+
+    return () => {
+      isMounted = false;
+      if (pollTimer) clearInterval(pollTimer);
+    };
   }, []);
 
-  // Load active event
-  useEffect(() => {
-    if (systemMode === 'event' && config?.active_event_id) {
-      const loadEvent = async () => {
-        const events = await base44.entities.Event.filter({ is_active: true });
-        if (events.length > 0) setActiveEvent(events[0]);
-      };
-      loadEvent();
-    }
-  }, [systemMode, config?.active_event_id]);
-
-  // Idle detection
+  // Idle-Detection (unverändert)
   useEffect(() => {
     const events = ['touchstart', 'mousedown', 'mousemove', 'keydown'];
     events.forEach(e => window.addEventListener(e, resetIdle));

@@ -155,9 +155,10 @@ export default function VenueMapPage() {
             willChange: 'transform',
           }}
         >
-          {/* Background image */}
+          {/* Hintergrundkarte – liegt in /public/assets/venue-map.png
+               Ersetze diese Datei durch den echten AGRA-Geländeplan. */}
           <img
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69b172c2003bd9c2d72412a9/a3b15f7e8_generated_4cc6a58b.png"
+            src="/assets/venue-map.png"
             alt="Venue Map"
             className="absolute inset-0 w-full h-full object-cover opacity-30"
             draggable={false}

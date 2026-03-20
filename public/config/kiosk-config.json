@@ -1,0 +1,9 @@
+{
+  "_comment": "Kiosk-Konfiguration. Diese Datei wird von den Stelen alle 30 Sekunden geladen. Änderungen werden innerhalb von 30 Sekunden auf allen Stelen aktiv.",
+  "system_mode": "week",
+  "idle_timeout_seconds": 60,
+  "slideshow_images": [],
+  "emergency_type": "evacuation",
+  "emergency_message": null,
+  "active_event_id": null
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CalendarDays, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { getWeekEvents } from '@/services/events/getWeekEvents.js';
 import { useKiosk } from '../kiosk/KioskContext';
 import EventDetail from './EventDetail.jsx';
 import moment from 'moment';
@@ -17,9 +17,8 @@ export default function EventsPage() {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
-    base44.functions.invoke('scrapeAgraEvents', {})
-      .then(res => setEvents(res.data?.events || []))
-      .catch(() => base44.entities.Event.list('start_date', 20).then(setEvents))
+    getWeekEvents()
+      .then(setEvents)
       .finally(() => setLoading(false));
   }, []);
 

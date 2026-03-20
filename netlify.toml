@@ -1,0 +1,24 @@
+# ── Build ────────────────────────────────────────────────────────────────────
+[build]
+  command   = "npm run build"
+  publish   = "dist"
+  functions = "netlify/functions"
+
+# ── Redirects ────────────────────────────────────────────────────────────────
+
+# AGRA Events API Proxy
+# Ersetzt den Vite Dev-Server Proxy für die Produktionsumgebung.
+# Browser fetcht /api/agra-events → Netlify leitet intern weiter.
+[[redirects]]
+  from    = "/api/agra-events"
+  to      = "https://agramessepark.de/wp-json/tribe/events/v1/events"
+  status  = 200
+  force   = true
+  [redirects.headers]
+    X-Forwarded-Host = "agramessepark.de"
+
+# SPA Fallback – alle unbekannten Routen → index.html (React Router)
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

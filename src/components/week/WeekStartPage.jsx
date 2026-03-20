@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, CalendarDays, Info, LayoutGrid } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { getWeekEvents } from '@/services/events/getWeekEvents.js';
 import { useKiosk } from '../kiosk/KioskContext';
 import LanguageSelector from '../kiosk/LanguageSelector';
 import EventSlider from './EventSlider';
@@ -19,9 +19,7 @@ export default function WeekStartPage({ onNavigate }) {
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
-    base44.functions.invoke('scrapeAgraEvents', {})
-      .then(res => setEvents(res.data?.events || []))
-      .catch(() => base44.entities.Event.list('start_date', 20).then(setEvents));
+    getWeekEvents().then(setEvents);
   }, []);
 
   return (

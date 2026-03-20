@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useKiosk } from './KioskContext';
 
+// Lokale Fallback-Bilder – liegen in /public/assets/
+// Ersetze diese Dateien durch echte AGRA-Fotos.
 const FALLBACK_IMAGES = [
-  'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69b172c2003bd9c2d72412a9/02b4750b5_generated_6d392c61.png',
-  'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69b172c2003bd9c2d72412a9/9d27f0253_generated_d1eb80dd.png',
-  'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69b172c2003bd9c2d72412a9/a3b15f7e8_generated_4cc6a58b.png',
+  '/assets/screensaver-1.jpg',
+  '/assets/screensaver-2.jpg',
+  '/assets/screensaver-3.jpg',
 ];
 
 export default function IdleScreensaver() {

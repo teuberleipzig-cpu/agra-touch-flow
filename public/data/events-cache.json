@@ -1,0 +1,15 @@
+{
+  "_comment": "Fallback-Event-Daten für den Fall, dass die AGRA-API nicht erreichbar ist. Diese Datei kann manuell oder per Skript aktualisiert werden.",
+  "events": [
+    {
+      "id": "fallback-1",
+      "title": "AGRA Messepark Leipzig",
+      "description": "Veranstaltungsinformationen sind derzeit nicht verfügbar. Bitte besuchen Sie agramessepark.de für aktuelle Termine.",
+      "start_date": null,
+      "end_date": null,
+      "image_url": null,
+      "website_url": "https://agramessepark.de/events/",
+      "ticket_url": null
+    }
+  ]
+}
