@@ -1,0 +1,190 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-display: 'Poppins', sans-serif;
+    --font-interface: 'Roboto', sans-serif;
+
+    --background: 168 7% 9%;
+    --foreground: 150 7% 96%;
+    --card: 168 7% 12%;
+    --card-foreground: 150 7% 96%;
+    --popover: 168 7% 12%;
+    --popover-foreground: 150 7% 96%;
+    --primary: 163 41% 31%;
+    --primary-foreground: 150 7% 96%;
+    --secondary: 168 7% 16%;
+    --secondary-foreground: 150 7% 96%;
+    --muted: 168 7% 18%;
+    --muted-foreground: 150 5% 55%;
+    --accent: 163 31% 43%;
+    --accent-foreground: 150 7% 96%;
+    --destructive: 348 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 168 7% 18%;
+    --input: 168 7% 18%;
+    --ring: 163 41% 31%;
+    --chart-1: 163 41% 31%;
+    --chart-2: 163 31% 43%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.75rem;
+
+    --sidebar-background: 168 7% 12%;
+    --sidebar-foreground: 150 7% 96%;
+    --sidebar-primary: 163 41% 31%;
+    --sidebar-primary-foreground: 150 7% 96%;
+    --sidebar-accent: 168 7% 16%;
+    --sidebar-accent-foreground: 150 7% 96%;
+    --sidebar-border: 168 7% 18%;
+    --sidebar-ring: 163 41% 31%;
+
+    --kiosk-surface: rgba(243, 245, 244, 0.05);
+    --kiosk-surface-hover: rgba(243, 245, 244, 0.08);
+    --kiosk-cyan: #2F6F5E;
+    --kiosk-cyan-glow: rgba(47, 111, 94, 0.35);
+    --kiosk-crimson: #FF003C;
+    --kiosk-crimson-glow: rgba(255, 0, 60, 0.4);
+  }
+
+  .dark {
+    --background: 168 7% 9%;
+    --foreground: 150 7% 96%;
+    --card: 168 7% 12%;
+    --card-foreground: 150 7% 96%;
+    --popover: 168 7% 12%;
+    --popover-foreground: 150 7% 96%;
+    --primary: 163 41% 31%;
+    --primary-foreground: 150 7% 96%;
+    --secondary: 168 7% 16%;
+    --secondary-foreground: 150 7% 96%;
+    --muted: 168 7% 18%;
+    --muted-foreground: 150 5% 55%;
+    --accent: 163 31% 43%;
+    --accent-foreground: 150 7% 96%;
+    --destructive: 348 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 168 7% 18%;
+    --input: 168 7% 18%;
+    --ring: 163 41% 31%;
+    --chart-1: 163 41% 31%;
+    --chart-2: 163 31% 43%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 168 7% 12%;
+    --sidebar-foreground: 150 7% 96%;
+    --sidebar-primary: 163 41% 31%;
+    --sidebar-primary-foreground: 150 7% 96%;
+    --sidebar-accent: 168 7% 16%;
+    --sidebar-accent-foreground: 150 7% 96%;
+    --sidebar-border: 168 7% 18%;
+    --sidebar-ring: 163 41% 31%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-interface);
+    overflow: hidden;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-interface {
+    font-family: var(--font-interface);
+  }
+  .kiosk-surface {
+    background: var(--kiosk-surface);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .kiosk-surface-hover {
+    background: var(--kiosk-surface-hover);
+  }
+  .cyan-glow {
+    box-shadow: 0 0 40px var(--kiosk-cyan-glow), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .crimson-glow {
+    box-shadow: 0 0 60px var(--kiosk-crimson-glow);
+  }
+  .text-shadow-glow {
+    text-shadow: 0 0 30px var(--kiosk-cyan-glow);
+  }
+  .pulse-emergency {
+    animation: emergencyPulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes emergencyPulse {
+  0%, 100% { background-color: #0A0A0C; }
+  50% { background-color: rgba(255, 0, 60, 0.15); }
+}
+
+@keyframes beaconPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.5); }
+}
+
+/* Scrollbar styling for kiosk */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* RTL support for Arabic */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* Light mode override */
+[data-theme="light"] {
+  --background: 210 20% 96%;
+  --foreground: 220 15% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 15% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 15% 15%;
+  --primary: 163 41% 31%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 15% 90%;
+  --secondary-foreground: 220 15% 20%;
+  --muted: 210 15% 88%;
+  --muted-foreground: 220 10% 45%;
+  --accent: 163 31% 43%;
+  --accent-foreground: 0 0% 100%;
+  --border: 210 15% 82%;
+  --input: 210 15% 82%;
+  --ring: 163 41% 31%;
+
+  --kiosk-surface: rgba(0, 0, 0, 0.04);
+  --kiosk-surface-hover: rgba(0, 0, 0, 0.07);
+  --kiosk-cyan-glow: rgba(47, 111, 94, 0.2);
+}
+
+[data-theme="light"] body {
+  background-color: hsl(210 20% 96%);
+  color: hsl(220 15% 15%);
+}
