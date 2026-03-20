@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, CalendarDays, Info, LayoutGrid } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { MapPin, CalendarDays, Info } from 'lucide-react';
 import { getWeekEvents } from '@/services/events/getWeekEvents.js';
 import { useKiosk } from '../kiosk/KioskContext';
 import LanguageSelector from '../kiosk/LanguageSelector';
@@ -15,7 +14,6 @@ const NAV_BUTTONS = [
 
 export default function WeekStartPage({ onNavigate }) {
   const { t } = useKiosk();
-  const navigate = useNavigate();
   const [events, setEvents] = useState([]);
 
   useEffect(() => {
@@ -37,14 +35,6 @@ export default function WeekStartPage({ onNavigate }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            onClick={() => navigate('/Menu')}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl kiosk-surface border border-white/[0.08] text-white/60 hover:text-white transition-colors touch-manipulation"
-          >
-            <LayoutGrid className="w-4 h-4" />
-            <span className="font-interface text-sm font-medium">Menü</span>
-          </motion.button>
           <LanguageSelector />
         </div>
       </div>

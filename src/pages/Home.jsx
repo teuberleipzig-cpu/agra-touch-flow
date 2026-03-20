@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { KioskProvider, useKiosk } from '../components/kiosk/KioskContext';
 import EmergencyOverlay from '../components/kiosk/EmergencyOverlay.jsx';
 import IdleScreensaver from '../components/kiosk/IdleScreensaver';
@@ -22,6 +23,17 @@ function KioskApp() {
   const { systemMode, isIdle, resetIdle } = useKiosk();
   const [currentPage, setCurrentPage] = useState('home');
   const [history, setHistory] = useState([]);
+  // Track previous systemMode to detect changes while app is running
+  const prevModeRef = useRef(systemMode);
+
+  // Reset to home when systemMode changes (e.g. admin switches week ↔ event ↔ emergency)
+  useEffect(() => {
+    if (prevModeRef.current !== systemMode) {
+      prevModeRef.current = systemMode;
+      setCurrentPage('home');
+      setHistory([]);
+    }
+  }, [systemMode]);
 
   // Reset to home on idle
   useEffect(() => {
@@ -62,25 +74,24 @@ function KioskApp() {
   const renderPage = () => {
     if (systemMode === 'event') {
       switch (currentPage) {
-        case 'home': return <EventStartPage onNavigate={navigate} />;
-        case 'standplan': return <StandplanPage />;
+        case 'home':       return <EventStartPage onNavigate={navigate} />;
+        case 'standplan':  return <StandplanPage />;
         case 'exhibitors': return <ExhibitorSearchPage />;
-        case 'program': return <ProgramPage />;
+        case 'program':    return <ProgramPage />;
         case 'eventService': return <EventServicePage />;
-        // Fall through to week mode pages for shared pages
-        case 'venueMap': return <VenueMapPage />;
-        case 'service': return <ServicePage />;
-        default: return <EventStartPage onNavigate={navigate} />;
+        case 'venueMap':   return <VenueMapPage />;
+        case 'service':    return <ServicePage />;
+        default:           return <EventStartPage onNavigate={navigate} />;
       }
     }
 
     // Week mode
     switch (currentPage) {
-      case 'home': return <WeekStartPage onNavigate={navigate} />;
+      case 'home':     return <WeekStartPage onNavigate={navigate} />;
       case 'venueMap': return <VenueMapPage />;
-      case 'events': return <EventsPage />;
-      case 'service': return <ServicePage />;
-      default: return <WeekStartPage onNavigate={navigate} />;
+      case 'events':   return <EventsPage />;
+      case 'service':  return <ServicePage />;
+      default:         return <WeekStartPage onNavigate={navigate} />;
     }
   };
 
@@ -91,7 +102,7 @@ function KioskApp() {
           <IdleScreensaver key="screensaver" />
         ) : (
           <motion.div
-            key={currentPage}
+            key={currentPage + '-' + systemMode}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -103,12 +114,10 @@ function KioskApp() {
         )}
       </AnimatePresence>
 
-      {/* Idle screensaver on home */}
       <AnimatePresence>
         {isIdle && isHomePage && <IdleScreensaver key="home-screensaver" />}
       </AnimatePresence>
 
-      {/* Control hub - shown on non-home pages */}
       {!isHomePage && !isIdle && (
         <ControlHub
           onBack={goBack}
