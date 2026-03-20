@@ -17,6 +17,7 @@ const DEFAULTS = {
   system_mode: 'week',
   idle_timeout_seconds: 60,
   slideshow_images: [],
+  scheduled_overrides: [],
   emergency_type: 'evacuation',
   emergency_message: null,
   active_event_id: null,
