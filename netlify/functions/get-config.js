@@ -1,13 +1,7 @@
 /**
  * get-config.js – Netlify Function
- *
- * Liefert die aktuelle Kiosk-Config aus dem Netlify Blob Store.
- * Fällt auf Defaults zurück wenn noch keine Config gespeichert wurde.
- *
+ * Liest die Kiosk-Config aus dem Netlify Blob Store.
  * Endpunkt: GET /.netlify/functions/get-config
- *
- * Die Stelen pollen diesen Endpunkt alle 30 Sekunden
- * (statt /config/kiosk-config.json direkt zu lesen).
  */
 
 const DEFAULTS = {
@@ -23,7 +17,6 @@ export async function handler(event) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Content-Type': 'application/json',
-    // Kein Browser-Cache – Stelen sollen immer aktuelle Config bekommen
     'Cache-Control': 'no-store',
   };
 
@@ -33,7 +26,11 @@ export async function handler(event) {
 
   try {
     const { getStore } = await import('@netlify/blobs');
-    const store = getStore('kiosk');
+    const store = getStore({
+      name: 'kiosk',
+      siteID: process.env.NETLIFY_SITE_ID,
+      token: process.env.NETLIFY_AUTH_TOKEN,
+    });
     const config = await store.get('config', { type: 'json' });
 
     return {
@@ -43,7 +40,6 @@ export async function handler(event) {
     };
   } catch (err) {
     console.error('Blob store error:', err);
-    // Immer Defaults zurückgeben – Kiosk läuft weiter
     return {
       statusCode: 200,
       headers,

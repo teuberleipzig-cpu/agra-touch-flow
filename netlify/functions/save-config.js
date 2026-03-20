@@ -1,17 +1,7 @@
 /**
  * save-config.js – Netlify Function
- *
- * Ersetzt save-config.php für den Netlify-Betrieb.
- *
- * WICHTIG: Netlify Functions können das Dateisystem nicht dauerhaft
- * beschreiben – jeder Function-Aufruf läuft in einer isolierten Umgebung.
- *
- * Lösung: Die Config wird in einer Netlify Blob (Key-Value-Store)
- * gespeichert. Die Kiosk-App holt sie dann über eine zweite Function
- * (get-config.js) statt direkt aus der JSON-Datei.
- *
+ * Speichert die Kiosk-Config im Netlify Blob Store.
  * Endpunkt: POST /.netlify/functions/save-config
- * Body: { _pin: "4081", system_mode: "week", ... }
  */
 
 const ADMIN_PIN = '4081';
@@ -34,8 +24,7 @@ const DEFAULTS = {
   active_event_id: null,
 };
 
-export async function handler(event) {
-  // CORS
+export async function handler(event, context) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -76,10 +65,14 @@ export async function handler(event) {
   config.idle_timeout_seconds = Math.max(10, Math.min(300, Number(config.idle_timeout_seconds) || 60));
   if (!Array.isArray(config.slideshow_images)) config.slideshow_images = [];
 
-  // In Netlify Blobs speichern
+  // Netlify Blobs – siteID und token explizit übergeben
   try {
     const { getStore } = await import('@netlify/blobs');
-    const store = getStore('kiosk');
+    const store = getStore({
+      name: 'kiosk',
+      siteID: process.env.NETLIFY_SITE_ID,
+      token: process.env.NETLIFY_AUTH_TOKEN,
+    });
     await store.setJSON('config', config);
   } catch (err) {
     console.error('Blob store error:', err);
