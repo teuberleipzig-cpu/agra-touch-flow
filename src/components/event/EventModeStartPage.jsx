@@ -1,7 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Mic2, CalendarDays, Info, LayoutGrid } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { MapPin, Mic2, CalendarDays, Info } from 'lucide-react';
 import { useKiosk } from '../kiosk/KioskContext';
 import LanguageSelector from '../kiosk/LanguageSelector';
 import moment from 'moment';
@@ -46,7 +45,6 @@ const PREVIEW_CARDS = [
 
 export default function EventModeStartPage({ event, onNavigate }) {
   const { language } = useKiosk();
-  const navigate = useNavigate();
   const [activeCardIndex, setActiveCardIndex] = useState(0);
 
   // Touch swipe logic
@@ -102,14 +100,6 @@ export default function EventModeStartPage({ event, onNavigate }) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <motion.button
-            whileTap={{ scale: 0.92 }}
-            onClick={() => navigate('/Menu')}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl kiosk-surface border border-white/[0.08] text-white/60 hover:text-white transition-colors touch-manipulation"
-          >
-            <LayoutGrid className="w-4 h-4" />
-            <span className="font-interface text-sm font-medium">Menü</span>
-          </motion.button>
           <LanguageSelector />
         </div>
       </div>

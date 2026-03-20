@@ -13,7 +13,7 @@ import EventsPage from '../components/week/EventsPage';
 import ServicePage from '../components/week/ServicePage';
 
 // Event mode pages
-import EventStartPage from '../components/event/EventStartPage';
+import EventModeStartPage from '../components/event/EventModeStartPage';
 import StandplanPage from '../components/event/StandplanPage';
 import ExhibitorSearchPage from '../components/event/ExhibitorSearchPage';
 import ProgramPage from '../components/event/ProgramPage';
@@ -74,7 +74,7 @@ function KioskApp() {
   const renderPage = () => {
     if (systemMode === 'event') {
       switch (currentPage) {
-        case 'home':       return <EventStartPage onNavigate={navigate} />;
+        case 'home':       return <EventModeStartPage onNavigate={navigate} />;
         case 'standplan':  return <StandplanPage />;
         case 'exhibitors': return <ExhibitorSearchPage />;
         case 'program':    return <ProgramPage />;
