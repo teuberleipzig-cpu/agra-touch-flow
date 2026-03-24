@@ -45,6 +45,9 @@ export default function VenueMapPage() {
   const [offset,   setOffset]   = useState({ x: 0, y: 0 });
   const [animating, setAnimating] = useState(false);
 
+  // Natürliche Bildgröße – für korrekten SVG viewBox
+  const [imgNat, setImgNat] = useState({ w: 0, h: 0 });
+
   // UI state
   const [activeFilters,  setActiveFilters]  = useState(new Set(Object.keys(TYPE_META)));
   const [selectedPoint,  setSelectedPoint]  = useState(null);
@@ -238,101 +241,74 @@ export default function VenueMapPage() {
             alt="Geländeplan AGRA Messepark"
             className="absolute inset-0 w-full h-full object-contain"
             draggable={false}
+            onLoad={(e) => setImgNat({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
           />
 
-          {/* SVG-Overlay – viewBox 0 0 100 100 → Koordinaten = direkt die gespeicherten % */}
-          <svg
-            viewBox="0 0 100 100"
-            preserveAspectRatio="xMidYMid meet"
-            className="absolute inset-0 w-full h-full"
-            style={{ overflow: 'visible' }}
-          >
-            {/* Kartenpunkte */}
-            {mapPoints.map((point, idx) => {
-              const num  = idx + 1;
-              const meta = TYPE_META[point.type] || TYPE_META.other;
-              const vis  = activeFilters.has(point.type);
-              const isSel = selectedPoint?.id === point.id;
-              if (!vis) return null;
-              const r = isSel ? R_SEL : R;
-              return (
-                <g
-                  key={point.id}
-                  style={{ cursor: 'pointer' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isDraggingRef.current)
-                      setSelectedPoint(isSel ? null : point);
-                  }}
-                >
-                  {/* Äußerer Glow-Ring wenn ausgewählt */}
-                  {isSel && (
-                    <circle
-                      cx={point.x} cy={point.y}
-                      r={r + 1.2}
-                      fill="none"
-                      stroke={meta.color}
-                      strokeWidth="0.5"
-                      opacity="0.5"
-                    />
-                  )}
-                  {/* Hauptkreis */}
-                  <circle
-                    cx={point.x} cy={point.y} r={r}
-                    fill={meta.color}
-                    stroke="rgba(0,0,0,0.6)"
-                    strokeWidth="0.3"
-                  />
-                  {/* Nummer */}
-                  <text
-                    x={point.x} y={point.y}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fontSize={FONT}
-                    fontWeight="700"
-                    fontFamily="system-ui, sans-serif"
-                    fill="white"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
-                  >
-                    {num}
-                  </text>
-                </g>
-              );
-            })}
+          {/* SVG-Overlay
+              viewBox = echtes Bildseitenverhältnis (normiert auf 100 Höhe)
+              → SVG und object-contain Bild liegen pixel-exakt übereinander
+              Gegenskalierung (1/scale) hält Punkte immer gleich groß
+          */}
+          {imgNat.w > 0 && (() => {
+            // viewBox auf natürliches Seitenverhältnis normieren
+            const vbW = (imgNat.w / imgNat.h) * 100;
+            const vbH = 100;
+            const cs  = 1 / scale;
+            return (
+              <svg
+                viewBox={`0 0 ${vbW} ${vbH}`}
+                preserveAspectRatio="xMidYMid meet"
+                className="absolute inset-0 w-full h-full"
+                style={{ overflow: 'visible' }}
+              >
+                {mapPoints.map((point, idx) => {
+                  // Punkte wurden in % des Bildes gesetzt (0–100 auf beiden Achsen)
+                  // Umrechnen auf die neue viewBox-Skala
+                  const px    = (point.x / 100) * vbW;
+                  const py    = (point.y / 100) * vbH;
+                  const num   = idx + 1;
+                  const meta  = TYPE_META[point.type] || TYPE_META.other;
+                  const vis   = activeFilters.has(point.type);
+                  const isSel = selectedPoint?.id === point.id;
+                  if (!vis) return null;
+                  const r = isSel ? R_SEL * cs : R * cs;
+                  return (
+                    <g key={point.id} style={{ cursor: 'pointer' }}
+                      onClick={(e) => { e.stopPropagation(); if (!isDraggingRef.current) setSelectedPoint(isSel ? null : point); }}>
+                      {isSel && (
+                        <circle cx={px} cy={py} r={(R_SEL + 1.2) * cs}
+                          fill="none" stroke={meta.color} strokeWidth={0.5 * cs} opacity="0.5" />
+                      )}
+                      <circle cx={px} cy={py} r={r}
+                        fill={meta.color} stroke="rgba(0,0,0,0.6)" strokeWidth={0.3 * cs} />
+                      <text x={px} y={py} textAnchor="middle" dominantBaseline="central"
+                        fontSize={FONT * cs} fontWeight="700" fontFamily="system-ui, sans-serif"
+                        fill="white" style={{ pointerEvents: 'none', userSelect: 'none' }}>
+                        {num}
+                      </text>
+                    </g>
+                  );
+                })}
 
-            {/* Du bist hier */}
-            {youAreHere && (
-              <g>
-                <circle
-                  cx={youAreHere.x} cy={youAreHere.y}
-                  r={R + 1.5}
-                  fill="none"
-                  stroke="#2F6F5E"
-                  strokeWidth="0.4"
-                  opacity="0.6"
-                />
-                <circle
-                  cx={youAreHere.x} cy={youAreHere.y}
-                  r={R}
-                  fill="#2F6F5E"
-                  stroke="white"
-                  strokeWidth="0.4"
-                />
-                <text
-                  x={youAreHere.x} y={youAreHere.y}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize={FONT - 0.2}
-                  fill="white"
-                  fontWeight="700"
-                  fontFamily="system-ui, sans-serif"
-                  style={{ pointerEvents: 'none', userSelect: 'none' }}
-                >
-                  ★
-                </text>
-              </g>
-            )}
-          </svg>
+                {youAreHere && (() => {
+                  const px = (youAreHere.x / 100) * vbW;
+                  const py = (youAreHere.y / 100) * vbH;
+                  return (
+                    <g>
+                      <circle cx={px} cy={py} r={(R + 1.5) * cs}
+                        fill="none" stroke="#2F6F5E" strokeWidth={0.4 * cs} opacity="0.6" />
+                      <circle cx={px} cy={py} r={R * cs}
+                        fill="#2F6F5E" stroke="white" strokeWidth={0.4 * cs} />
+                      <text x={px} y={py} textAnchor="middle" dominantBaseline="central"
+                        fontSize={(FONT - 0.2) * cs} fill="white" fontWeight="700"
+                        fontFamily="system-ui, sans-serif"
+                        style={{ pointerEvents: 'none', userSelect: 'none' }}>★</text>
+                    </g>
+                  );
+                })()}
+              </svg>
+            );
+          })()}
         </motion.div>
 
         {/* ── Zoom-Zone Buttons unten ── */}
