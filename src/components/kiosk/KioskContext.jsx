@@ -246,6 +246,10 @@ export function KioskProvider({ children }) {
     // Sofort beim Start laden
     fetchConfig();
 
+    // Venue-Map vorladen damit sie beim ersten Klick auf Geländeplan sofort da ist
+    const preloadMap = new window.Image();
+    preloadMap.src = '/assets/venue-map.png';
+
     // Danach alle 30 Sekunden pollen (ermöglicht Modus-Wechsel vom Büro)
     pollTimer = setInterval(fetchConfig, CONFIG_POLL_INTERVAL_MS);
 
