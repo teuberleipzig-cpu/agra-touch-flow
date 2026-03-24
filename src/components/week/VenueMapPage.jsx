@@ -2,8 +2,8 @@ import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, Car, Bath, Landmark, UtensilsCrossed,
-  MapPin, ZoomIn, ZoomOut, RotateCcw, Info, DoorOpen,
-  HeartPulse, Layers
+  MapPin, ZoomIn, ZoomOut, RotateCcw, Layers,
+  Info, DoorOpen, HeartPulse
 } from 'lucide-react';
 import { useKiosk } from '../kiosk/KioskContext';
 import BeaconHeader from '../kiosk/BeaconHeader';
@@ -31,44 +31,6 @@ function getKioskId() {
   return new URLSearchParams(window.location.search).get('kiosk');
 }
 
-// ─── object-contain Bildbereich berechnen ─────────────────────
-// Gibt zurück wo das Bild im Container tatsächlich gerendert wird
-// (wegen object-contain hat es ggf. Letterboxing)
-function getImageRect(cW, cH, imgNatW, imgNatH) {
-  if (!imgNatW || !imgNatH) return { left: 0, top: 0, width: cW, height: cH };
-  const containerRatio = cW / cH;
-  const imageRatio     = imgNatW / imgNatH;
-  let imgW, imgH;
-  if (imageRatio > containerRatio) {
-    // Bild breiter → volle Breite, Letterboxing oben/unten
-    imgW = cW;
-    imgH = cW / imageRatio;
-  } else {
-    // Bild höher → volle Höhe, Letterboxing links/rechts
-    imgH = cH;
-    imgW = cH * imageRatio;
-  }
-  return {
-    left:   (cW - imgW) / 2,
-    top:    (cH - imgH) / 2,
-    width:  imgW,
-    height: imgH,
-  };
-}
-
-// ─── Koordinaten-Umrechnung ───────────────────────────────────
-// pctX/pctY = Position relativ zum Bild (0–100%)
-// Gibt Pixel-Position im Container zurück (nach Transform)
-function toScreenPos(pctX, pctY, cW, cH, scale, ox, oy, imgRect) {
-  // Position im unscaled Bild, relativ zum Container
-  const imgX = imgRect.left + (pctX / 100) * imgRect.width;
-  const imgY = imgRect.top  + (pctY / 100) * imgRect.height;
-  // Nach Transformation (origin = center des Containers)
-  const screenX = cW / 2 + (imgX - cW / 2) * scale + ox;
-  const screenY = cH / 2 + (imgY - cH / 2) * scale + oy;
-  return { x: screenX, y: screenY };
-}
-
 export default function VenueMapPage() {
   const { t, config } = useKiosk();
 
@@ -79,35 +41,17 @@ export default function VenueMapPage() {
   const youAreHere = kioskId ? (stelen[kioskId]?.you_are_here ?? null) : null;
 
   // Transform state
-  const [scale,  setScale]  = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [scale,    setScale]    = useState(1);
+  const [offset,   setOffset]   = useState({ x: 0, y: 0 });
   const [animating, setAnimating] = useState(false);
 
-  // Container-Größe
-  const containerRef = useRef(null);
-  const [cSize, setCSize] = useState({ w: 0, h: 0 });
-
-  // Natürliche Bildgröße (für object-contain Berechnung)
-  const imgRef    = useRef(null);
-  const [imgNat, setImgNat] = useState({ w: 0, h: 0 });
-
-  useLayoutEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(entries => {
-      const { width, height } = entries[0].contentRect;
-      setCSize({ w: width, h: height });
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   // UI state
-  const [activeFilters, setActiveFilters] = useState(new Set(Object.keys(TYPE_META)));
-  const [selectedPoint, setSelectedPoint] = useState(null);
-  const [activeZoneId,  setActiveZoneId]  = useState(null);
+  const [activeFilters,  setActiveFilters]  = useState(new Set(Object.keys(TYPE_META)));
+  const [selectedPoint,  setSelectedPoint]  = useState(null);
+  const [activeZoneId,   setActiveZoneId]   = useState(null);
 
-  // Touch refs
+  // Refs
+  const containerRef     = useRef(null);
   const lastTouchRef     = useRef(null);
   const lastPinchDistRef = useRef(null);
   const isDraggingRef    = useRef(false);
@@ -133,25 +77,23 @@ export default function VenueMapPage() {
     animateTo(1, 0, 0);
   }, [animateTo]);
 
-  // ── imgRect berechnen ─────────────────────────────────────────
-  const imgRect = getImageRect(cSize.w, cSize.h, imgNat.w, imgNat.h);
-
   // ── Zoom to zone ─────────────────────────────────────────────
+  // SVG viewBox ist 0–100, also sind zone.x/y direkt % des Bildes.
+  // Wir müssen die Container-Größe kennen um den Offset zu berechnen.
   const zoomToZone = useCallback((zone) => {
     if (activeZoneId === zone.id) { resetView(); return; }
-    const { w, h } = cSize;
-    if (!w || !h) return;
+    const el = containerRef.current;
+    if (!el) return;
+    const { width: cW, height: cH } = el.getBoundingClientRect();
     setActiveZoneId(zone.id);
     setSelectedPoint(null);
-    const rect = getImageRect(w, h, imgNat.w, imgNat.h);
     const ns  = zone.zoom;
-    // Punkt auf dem Bild → Position im Container
-    const imgX = rect.left + (zone.x / 100) * rect.width;
-    const imgY = rect.top  + (zone.y / 100) * rect.height;
-    const ox = (w / 2 - imgX) * (ns - 1);
-    const oy = (h / 2 - imgY) * (ns - 1);
+    // zone.x/y sind % des Bildes. Da SVG + Bild zusammen transformiert werden
+    // und transformOrigin = center, rechnen wir relativ zur Container-Mitte.
+    const ox = (cW / 2 - (zone.x / 100) * cW) * (ns - 1);
+    const oy = (cH / 2 - (zone.y / 100) * cH) * (ns - 1);
     animateTo(ns, ox, oy);
-  }, [activeZoneId, cSize, imgNat, animateTo, resetView]);
+  }, [activeZoneId, animateTo, resetView]);
 
   // ── Double-tap ────────────────────────────────────────────────
   const handleDoubleTap = useCallback((clientX, clientY) => {
@@ -160,15 +102,13 @@ export default function VenueMapPage() {
     const { left, top, width, height } = el.getBoundingClientRect();
     if (scale >= 2.5) { resetView(); return; }
     const ns = 2.5;
-    const tapX = clientX - left;
-    const tapY = clientY - top;
-    const ox = (width  / 2 - tapX) * (ns - 1);
-    const oy = (height / 2 - tapY) * (ns - 1);
+    const ox = (width  / 2 - (clientX - left))  * (ns - 1);
+    const oy = (height / 2 - (clientY - top))   * (ns - 1);
     setActiveZoneId(null);
     animateTo(ns, ox, oy);
   }, [scale, resetView, animateTo]);
 
-  // ── Touch handlers ───────────────────────────────────────────
+  // ── Touch ────────────────────────────────────────────────────
   const pDist = (t1, t2) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
 
   const handleTouchStart = useCallback((e) => {
@@ -176,7 +116,6 @@ export default function VenueMapPage() {
       const t0 = e.touches[0];
       lastTouchRef.current  = { x: t0.clientX, y: t0.clientY };
       isDraggingRef.current = false;
-      // Double-tap detection
       const now = Date.now();
       const dt  = now - doubleTapRef.current.lastTime;
       const dx  = Math.abs(t0.clientX - doubleTapRef.current.lastX);
@@ -194,7 +133,7 @@ export default function VenueMapPage() {
   }, [handleDoubleTap]);
 
   const handleTouchMove = useCallback((e) => {
-    e.preventDefault(); // verhindert Seiten-Scroll während Karten-Drag
+    e.preventDefault();
     e.stopPropagation();
     if (e.touches.length === 2 && lastPinchDistRef.current !== null) {
       const nd    = pDist(e.touches[0], e.touches[1]);
@@ -219,7 +158,7 @@ export default function VenueMapPage() {
     lastPinchDistRef.current = null;
   }, []);
 
-  // passive:false nötig damit preventDefault() in touchmove funktioniert
+  // passive:false damit preventDefault() in touchmove greift
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -244,10 +183,15 @@ export default function VenueMapPage() {
     });
   };
 
-  const activeTypes    = [...new Set(mapPoints.map(p => p.type))].filter(k => TYPE_META[k]);
-  const filteredPoints = mapPoints.filter(p => activeFilters.has(p.type));
-  const isTransformed  = scale !== 1 || offset.x !== 0 || offset.y !== 0;
-  const { w: cW, h: cH } = cSize;
+  // Punkte mit Nummern – Nummer bleibt fix (Index+1), auch wenn gefiltert
+  const activeTypes = [...new Set(mapPoints.map(p => p.type))].filter(k => TYPE_META[k]);
+  const isTransformed = scale !== 1 || offset.x !== 0 || offset.y !== 0;
+
+  // SVG-Kreis-Radius in viewBox-Einheiten (0–100 Skala)
+  // Bei 20+ Punkten: kleiner Radius damit sie sich nicht überlappen
+  const R      = 1.4;   // Kreis-Radius
+  const R_SEL  = 1.8;   // Ausgewählt
+  const FONT   = 1.5;   // Font-Size
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -280,86 +224,118 @@ export default function VenueMapPage() {
         onTouchEnd={handleTouchEnd}
         style={{ touchAction: 'none' }}
       >
-        {/* Nur das Bild wird transformiert */}
+        {/* ── Bild + SVG zusammen transformiert ── */}
+        {/* Kein separater Marker-Layer mehr – SVG liegt direkt auf dem Bild */}
         <motion.div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0"
           animate={{ x: offset.x, y: offset.y, scale }}
           transition={animating ? SMOOTH : { duration: 0 }}
           style={{ transformOrigin: 'center center', willChange: 'transform' }}
         >
+          {/* Karte */}
           <img
-            ref={imgRef}
             src="/assets/venue-map.png"
             alt="Geländeplan AGRA Messepark"
             className="absolute inset-0 w-full h-full object-contain"
             draggable={false}
-            onLoad={(e) => {
-              setImgNat({ w: e.target.naturalWidth, h: e.target.naturalHeight });
-            }}
           />
-        </motion.div>
 
-        {/* Marker-Ebene – außerhalb Transform, immer gleich groß */}
-        {cW > 0 && cH > 0 && imgNat.w > 0 && (
-          <div className="absolute inset-0 pointer-events-none">
-
+          {/* SVG-Overlay – viewBox 0 0 100 100 → Koordinaten = direkt die gespeicherten % */}
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="xMidYMid meet"
+            className="absolute inset-0 w-full h-full"
+            style={{ overflow: 'visible' }}
+          >
             {/* Kartenpunkte */}
-            {filteredPoints.map(point => {
-              const meta       = TYPE_META[point.type] || TYPE_META.other;
-              const Icon       = meta.icon;
-              const pos        = toScreenPos(point.x, point.y, cW, cH, scale, offset.x, offset.y, imgRect);
-              const isSelected = selectedPoint?.id === point.id;
-              if (pos.x < -50 || pos.x > cW + 50 || pos.y < -50 || pos.y > cH + 50) return null;
+            {mapPoints.map((point, idx) => {
+              const num  = idx + 1;
+              const meta = TYPE_META[point.type] || TYPE_META.other;
+              const vis  = activeFilters.has(point.type);
+              const isSel = selectedPoint?.id === point.id;
+              if (!vis) return null;
+              const r = isSel ? R_SEL : R;
               return (
-                <motion.button
+                <g
                   key={point.id}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="absolute pointer-events-auto touch-manipulation flex flex-col items-center"
-                  style={{ left: pos.x, top: pos.y, transform: 'translate(-50%, -100%)' }}
-                  onClick={() => !isDraggingRef.current && setSelectedPoint(isSelected ? null : point)}
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isDraggingRef.current)
+                      setSelectedPoint(isSel ? null : point);
+                  }}
                 >
-                  <motion.div
-                    animate={{ scale: isSelected ? 1.15 : 1 }}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center"
-                    style={{
-                      backgroundColor: meta.color + '33',
-                      border:    `2px solid ${meta.color}`,
-                      boxShadow: isSelected ? `0 0 0 3px ${meta.color}55` : '0 2px 8px rgba(0,0,0,0.5)',
-                    }}
+                  {/* Äußerer Glow-Ring wenn ausgewählt */}
+                  {isSel && (
+                    <circle
+                      cx={point.x} cy={point.y}
+                      r={r + 1.2}
+                      fill="none"
+                      stroke={meta.color}
+                      strokeWidth="0.5"
+                      opacity="0.5"
+                    />
+                  )}
+                  {/* Hauptkreis */}
+                  <circle
+                    cx={point.x} cy={point.y} r={r}
+                    fill={meta.color}
+                    stroke="rgba(0,0,0,0.6)"
+                    strokeWidth="0.3"
+                  />
+                  {/* Nummer */}
+                  <text
+                    x={point.x} y={point.y}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize={FONT}
+                    fontWeight="700"
+                    fontFamily="system-ui, sans-serif"
+                    fill="white"
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}
                   >
-                    <Icon className="w-4 h-4" style={{ color: meta.color }} />
-                  </motion.div>
-                  <span
-                    className="mt-1 font-interface text-[11px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap"
-                    style={{ background: 'rgba(8,9,11,0.85)', color: meta.color }}
-                  >
-                    {point.label}
-                  </span>
-                </motion.button>
+                    {num}
+                  </text>
+                </g>
               );
             })}
 
-            {/* Du bist hier – kein Zone-Marker auf der Karte */}
-            {youAreHere && (() => {
-              const pos = toScreenPos(youAreHere.x, youAreHere.y, cW, cH, scale, offset.x, offset.y, imgRect);
-              return (
-                <div className="absolute pointer-events-none flex flex-col items-center"
-                  style={{ left: pos.x, top: pos.y, transform: 'translate(-50%, -50%)' }}>
-                  <div className="relative">
-                    <div className="w-8 h-8 rounded-full bg-primary/40 animate-beacon-pulse absolute -inset-1" />
-                    <MapPin className="w-10 h-10 text-primary relative z-10 drop-shadow-lg" fill="currentColor" />
-                  </div>
-                  <span className="mt-1 font-interface text-xs font-bold text-primary bg-background/90 px-3 py-1 rounded-lg whitespace-nowrap shadow-lg">
-                    {t('youAreHere')}
-                  </span>
-                </div>
-              );
-            })()}
-          </div>
-        )}
+            {/* Du bist hier */}
+            {youAreHere && (
+              <g>
+                <circle
+                  cx={youAreHere.x} cy={youAreHere.y}
+                  r={R + 1.5}
+                  fill="none"
+                  stroke="#2F6F5E"
+                  strokeWidth="0.4"
+                  opacity="0.6"
+                />
+                <circle
+                  cx={youAreHere.x} cy={youAreHere.y}
+                  r={R}
+                  fill="#2F6F5E"
+                  stroke="white"
+                  strokeWidth="0.4"
+                />
+                <text
+                  x={youAreHere.x} y={youAreHere.y}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize={FONT - 0.2}
+                  fill="white"
+                  fontWeight="700"
+                  fontFamily="system-ui, sans-serif"
+                  style={{ pointerEvents: 'none', userSelect: 'none' }}
+                >
+                  ★
+                </text>
+              </g>
+            )}
+          </svg>
+        </motion.div>
 
-        {/* ── Zoom-Zone Buttons unten – KEIN Marker auf Karte ── */}
+        {/* ── Zoom-Zone Buttons unten ── */}
         {mapZones.length > 0 && (
           <div className="absolute bottom-4 left-4 right-16 flex gap-2 flex-wrap z-20">
             <motion.button whileTap={{ scale: 0.94 }} onClick={resetView}
@@ -418,9 +394,11 @@ export default function VenueMapPage() {
         {/* ── Hint ── */}
         <FadeHint />
 
-        {/* ── Ausgewählter Punkt Detail ── */}
+        {/* ── Popup bei ausgewähltem Punkt ── */}
         <AnimatePresence>
           {selectedPoint && (() => {
+            const idx  = mapPoints.findIndex(p => p.id === selectedPoint.id);
+            const num  = idx + 1;
             const meta = TYPE_META[selectedPoint.type] || TYPE_META.other;
             const Icon = meta.icon;
             return (
@@ -428,17 +406,31 @@ export default function VenueMapPage() {
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
                 className="absolute bottom-20 left-4 right-4 kiosk-surface backdrop-blur-xl rounded-2xl p-5 border border-white/[0.1] z-20"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: meta.color + '22', border: `1.5px solid ${meta.color}` }}>
-                    <Icon className="w-5 h-5" style={{ color: meta.color }} />
+                <div className="flex items-center gap-4">
+                  {/* Nummer-Badge */}
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 font-display font-black text-xl text-white"
+                    style={{ background: meta.color }}
+                  >
+                    {num}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-display font-bold text-xl text-foreground leading-tight">{selectedPoint.label}</h3>
-                    <p className="text-muted-foreground font-interface text-sm mt-0.5">{meta.label}</p>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-display font-bold text-xl text-foreground leading-tight truncate">
+                      {selectedPoint.label}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Icon className="w-4 h-4 flex-shrink-0" style={{ color: meta.color }} />
+                      <span className="text-muted-foreground font-interface text-sm">{meta.label}</span>
+                    </div>
                   </div>
-                  <button onClick={() => setSelectedPoint(null)}
-                    className="text-muted-foreground/50 hover:text-foreground transition-colors p-1 touch-manipulation text-lg">✕</button>
+                  {/* Schließen */}
+                  <button
+                    onClick={() => setSelectedPoint(null)}
+                    className="text-muted-foreground/50 hover:text-foreground transition-colors p-1 touch-manipulation text-xl flex-shrink-0"
+                  >
+                    ✕
+                  </button>
                 </div>
               </motion.div>
             );
