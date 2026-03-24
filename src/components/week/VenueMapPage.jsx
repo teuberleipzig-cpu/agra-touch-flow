@@ -22,7 +22,7 @@ const TYPE_META = {
   other:      { icon: MapPin,          color: '#94A3B8', label: 'Sonstiges'   },
 };
 
-const ZOOM_MIN = 0.9;
+const ZOOM_MIN = 1;
 const ZOOM_MAX = 5;
 const SMOOTH   = { type: 'spring', stiffness: 280, damping: 30 };
 
@@ -31,13 +31,39 @@ function getKioskId() {
   return new URLSearchParams(window.location.search).get('kiosk');
 }
 
+// ─── object-contain Bildbereich berechnen ─────────────────────
+// Gibt zurück wo das Bild im Container tatsächlich gerendert wird
+// (wegen object-contain hat es ggf. Letterboxing)
+function getImageRect(cW, cH, imgNatW, imgNatH) {
+  if (!imgNatW || !imgNatH) return { left: 0, top: 0, width: cW, height: cH };
+  const containerRatio = cW / cH;
+  const imageRatio     = imgNatW / imgNatH;
+  let imgW, imgH;
+  if (imageRatio > containerRatio) {
+    // Bild breiter → volle Breite, Letterboxing oben/unten
+    imgW = cW;
+    imgH = cW / imageRatio;
+  } else {
+    // Bild höher → volle Höhe, Letterboxing links/rechts
+    imgH = cH;
+    imgW = cH * imageRatio;
+  }
+  return {
+    left:   (cW - imgW) / 2,
+    top:    (cH - imgH) / 2,
+    width:  imgW,
+    height: imgH,
+  };
+}
+
 // ─── Koordinaten-Umrechnung ───────────────────────────────────
-// Rechnet Prozent-Position auf der Karte in Pixel-Position im
-// Container um – berücksichtigt Scale + Offset.
-// transformOrigin ist immer 'center center'.
-function toScreenPos(pctX, pctY, cW, cH, scale, ox, oy) {
-  const imgX   = (pctX / 100) * cW;
-  const imgY   = (pctY / 100) * cH;
+// pctX/pctY = Position relativ zum Bild (0–100%)
+// Gibt Pixel-Position im Container zurück (nach Transform)
+function toScreenPos(pctX, pctY, cW, cH, scale, ox, oy, imgRect) {
+  // Position im unscaled Bild, relativ zum Container
+  const imgX = imgRect.left + (pctX / 100) * imgRect.width;
+  const imgY = imgRect.top  + (pctY / 100) * imgRect.height;
+  // Nach Transformation (origin = center des Containers)
   const screenX = cW / 2 + (imgX - cW / 2) * scale + ox;
   const screenY = cH / 2 + (imgY - cH / 2) * scale + oy;
   return { x: screenX, y: screenY };
@@ -57,9 +83,13 @@ export default function VenueMapPage() {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [animating, setAnimating] = useState(false);
 
-  // Container-Größe für Koordinaten-Rechnung
+  // Container-Größe
   const containerRef = useRef(null);
   const [cSize, setCSize] = useState({ w: 0, h: 0 });
+
+  // Natürliche Bildgröße (für object-contain Berechnung)
+  const imgRef    = useRef(null);
+  const [imgNat, setImgNat] = useState({ w: 0, h: 0 });
 
   useLayoutEffect(() => {
     const el = containerRef.current;
@@ -75,7 +105,7 @@ export default function VenueMapPage() {
   // UI state
   const [activeFilters, setActiveFilters] = useState(new Set(Object.keys(TYPE_META)));
   const [selectedPoint, setSelectedPoint] = useState(null);
-  const [activeZoneId, setActiveZoneId]   = useState(null);
+  const [activeZoneId,  setActiveZoneId]  = useState(null);
 
   // Touch refs
   const lastTouchRef     = useRef(null);
@@ -85,7 +115,7 @@ export default function VenueMapPage() {
 
   // ── Helpers ──────────────────────────────────────────────────
   const clampOffset = useCallback((ox, oy, sc) => {
-    const max = Math.max(0, (sc - 1) * 300);
+    const max = Math.max(0, (sc - 1) * 350);
     return { x: Math.max(-max, Math.min(max, ox)), y: Math.max(-max, Math.min(max, oy)) };
   }, []);
 
@@ -103,6 +133,9 @@ export default function VenueMapPage() {
     animateTo(1, 0, 0);
   }, [animateTo]);
 
+  // ── imgRect berechnen ─────────────────────────────────────────
+  const imgRect = getImageRect(cSize.w, cSize.h, imgNat.w, imgNat.h);
+
   // ── Zoom to zone ─────────────────────────────────────────────
   const zoomToZone = useCallback((zone) => {
     if (activeZoneId === zone.id) { resetView(); return; }
@@ -110,11 +143,15 @@ export default function VenueMapPage() {
     if (!w || !h) return;
     setActiveZoneId(zone.id);
     setSelectedPoint(null);
-    const ns = zone.zoom;
-    const ox = (w / 2 - (zone.x / 100) * w) * (ns - 1);
-    const oy = (h / 2 - (zone.y / 100) * h) * (ns - 1);
+    const rect = getImageRect(w, h, imgNat.w, imgNat.h);
+    const ns  = zone.zoom;
+    // Punkt auf dem Bild → Position im Container
+    const imgX = rect.left + (zone.x / 100) * rect.width;
+    const imgY = rect.top  + (zone.y / 100) * rect.height;
+    const ox = (w / 2 - imgX) * (ns - 1);
+    const oy = (h / 2 - imgY) * (ns - 1);
     animateTo(ns, ox, oy);
-  }, [activeZoneId, cSize, animateTo, resetView]);
+  }, [activeZoneId, cSize, imgNat, animateTo, resetView]);
 
   // ── Double-tap ────────────────────────────────────────────────
   const handleDoubleTap = useCallback((clientX, clientY) => {
@@ -123,8 +160,10 @@ export default function VenueMapPage() {
     const { left, top, width, height } = el.getBoundingClientRect();
     if (scale >= 2.5) { resetView(); return; }
     const ns = 2.5;
-    const ox = (width  / 2 - (clientX - left))  * (ns - 1);
-    const oy = (height / 2 - (clientY - top))   * (ns - 1);
+    const tapX = clientX - left;
+    const tapY = clientY - top;
+    const ox = (width  / 2 - tapX) * (ns - 1);
+    const oy = (height / 2 - tapY) * (ns - 1);
     setActiveZoneId(null);
     animateTo(ns, ox, oy);
   }, [scale, resetView, animateTo]);
@@ -132,11 +171,12 @@ export default function VenueMapPage() {
   // ── Touch handlers ───────────────────────────────────────────
   const pDist = (t1, t2) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
 
-  const handleTouchStart = (e) => {
+  const handleTouchStart = useCallback((e) => {
     if (e.touches.length === 1) {
       const t0 = e.touches[0];
       lastTouchRef.current  = { x: t0.clientX, y: t0.clientY };
       isDraggingRef.current = false;
+      // Double-tap detection
       const now = Date.now();
       const dt  = now - doubleTapRef.current.lastTime;
       const dx  = Math.abs(t0.clientX - doubleTapRef.current.lastX);
@@ -151,9 +191,10 @@ export default function VenueMapPage() {
       lastPinchDistRef.current = pDist(e.touches[0], e.touches[1]);
       setActiveZoneId(null);
     }
-  };
+  }, [handleDoubleTap]);
 
-  const handleTouchMove = (e) => {
+  const handleTouchMove = useCallback((e) => {
+    e.preventDefault(); // verhindert Seiten-Scroll während Karten-Drag
     e.stopPropagation();
     if (e.touches.length === 2 && lastPinchDistRef.current !== null) {
       const nd    = pDist(e.touches[0], e.touches[1]);
@@ -171,12 +212,20 @@ export default function VenueMapPage() {
       setOffset(prev => clampOffset(prev.x + dx, prev.y + dy, scale));
       lastTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }
-  };
+  }, [scale, clampOffset]);
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = useCallback(() => {
     lastTouchRef.current     = null;
     lastPinchDistRef.current = null;
-  };
+  }, []);
+
+  // passive:false nötig damit preventDefault() in touchmove funktioniert
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    return () => el.removeEventListener('touchmove', handleTouchMove);
+  }, [handleTouchMove]);
 
   // ── Zoom buttons ─────────────────────────────────────────────
   const zoomIn  = () => animateTo(Math.min(scale + 0.5, ZOOM_MAX), offset.x, offset.y);
@@ -228,11 +277,10 @@ export default function VenueMapPage() {
         ref={containerRef}
         className="flex-1 mx-6 mb-3 relative rounded-3xl kiosk-surface border border-white/[0.06] overflow-hidden"
         onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         style={{ touchAction: 'none' }}
       >
-        {/* Nur das Bild wird transformiert – keine Marker drin */}
+        {/* Nur das Bild wird transformiert */}
         <motion.div
           className="absolute inset-0 pointer-events-none"
           animate={{ x: offset.x, y: offset.y, scale }}
@@ -240,24 +288,27 @@ export default function VenueMapPage() {
           style={{ transformOrigin: 'center center', willChange: 'transform' }}
         >
           <img
+            ref={imgRef}
             src="/assets/venue-map.png"
             alt="Geländeplan AGRA Messepark"
             className="absolute inset-0 w-full h-full object-contain"
             draggable={false}
+            onLoad={(e) => {
+              setImgNat({ w: e.target.naturalWidth, h: e.target.naturalHeight });
+            }}
           />
         </motion.div>
 
-        {/* Marker-Ebene – außerhalb der Transformation, immer gleich groß */}
-        {cW > 0 && cH > 0 && (
+        {/* Marker-Ebene – außerhalb Transform, immer gleich groß */}
+        {cW > 0 && cH > 0 && imgNat.w > 0 && (
           <div className="absolute inset-0 pointer-events-none">
 
             {/* Kartenpunkte */}
             {filteredPoints.map(point => {
               const meta       = TYPE_META[point.type] || TYPE_META.other;
               const Icon       = meta.icon;
-              const pos        = toScreenPos(point.x, point.y, cW, cH, scale, offset.x, offset.y);
+              const pos        = toScreenPos(point.x, point.y, cW, cH, scale, offset.x, offset.y, imgRect);
               const isSelected = selectedPoint?.id === point.id;
-              // Außerhalb des sichtbaren Bereichs nicht rendern
               if (pos.x < -50 || pos.x > cW + 50 || pos.y < -50 || pos.y > cH + 50) return null;
               return (
                 <motion.button
@@ -274,9 +325,7 @@ export default function VenueMapPage() {
                     style={{
                       backgroundColor: meta.color + '33',
                       border:    `2px solid ${meta.color}`,
-                      boxShadow: isSelected
-                        ? `0 0 0 3px ${meta.color}55`
-                        : '0 2px 8px rgba(0,0,0,0.5)',
+                      boxShadow: isSelected ? `0 0 0 3px ${meta.color}55` : '0 2px 8px rgba(0,0,0,0.5)',
                     }}
                   >
                     <Icon className="w-4 h-4" style={{ color: meta.color }} />
@@ -291,32 +340,9 @@ export default function VenueMapPage() {
               );
             })}
 
-            {/* Zoom-Zone Marker auf der Karte */}
-            {mapZones.map(zone => {
-              const pos = toScreenPos(zone.x, zone.y, cW, cH, scale, offset.x, offset.y);
-              if (pos.x < -60 || pos.x > cW + 60 || pos.y < -30 || pos.y > cH + 30) return null;
-              return (
-                <button key={zone.id}
-                  className="absolute pointer-events-auto touch-manipulation"
-                  style={{ left: pos.x, top: pos.y, transform: 'translate(-50%, -50%)' }}
-                  onClick={() => zoomToZone(zone)}
-                >
-                  <div className="px-2 py-1 rounded-lg text-[10px] font-bold border"
-                    style={{
-                      background:  activeZoneId === zone.id ? 'rgba(250,204,21,0.25)' : 'rgba(250,204,21,0.08)',
-                      borderColor: 'rgba(250,204,21,0.5)',
-                      color:       '#FACC15',
-                    }}
-                  >
-                    🔍 {zone.label}
-                  </div>
-                </button>
-              );
-            })}
-
-            {/* Du bist hier */}
+            {/* Du bist hier – kein Zone-Marker auf der Karte */}
             {youAreHere && (() => {
-              const pos = toScreenPos(youAreHere.x, youAreHere.y, cW, cH, scale, offset.x, offset.y);
+              const pos = toScreenPos(youAreHere.x, youAreHere.y, cW, cH, scale, offset.x, offset.y, imgRect);
               return (
                 <div className="absolute pointer-events-none flex flex-col items-center"
                   style={{ left: pos.x, top: pos.y, transform: 'translate(-50%, -50%)' }}>
@@ -333,7 +359,7 @@ export default function VenueMapPage() {
           </div>
         )}
 
-        {/* ── Zoom-Zone Buttons (unten) ── */}
+        {/* ── Zoom-Zone Buttons unten – KEIN Marker auf Karte ── */}
         {mapZones.length > 0 && (
           <div className="absolute bottom-4 left-4 right-16 flex gap-2 flex-wrap z-20">
             <motion.button whileTap={{ scale: 0.94 }} onClick={resetView}
@@ -357,7 +383,7 @@ export default function VenueMapPage() {
           </div>
         )}
 
-        {/* ── Zoom Controls (rechts oben) ── */}
+        {/* ── Zoom Controls ── */}
         <div className="absolute top-4 right-4 flex flex-col gap-2 z-20">
           <motion.button whileTap={{ scale: 0.9 }} onClick={zoomIn}
             className="w-12 h-12 rounded-xl kiosk-surface border border-white/[0.1] flex items-center justify-center text-foreground touch-manipulation backdrop-blur-xl">
