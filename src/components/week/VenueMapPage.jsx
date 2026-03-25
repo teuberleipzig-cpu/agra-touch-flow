@@ -190,11 +190,8 @@ export default function VenueMapPage() {
   const activeTypes = [...new Set(mapPoints.map(p => p.type))].filter(k => TYPE_META[k]);
   const isTransformed = scale !== 1 || offset.x !== 0 || offset.y !== 0;
 
-  // SVG-Kreis-Radius in viewBox-Einheiten (0–100 Skala)
-  // Bei 20+ Punkten: kleiner Radius damit sie sich nicht überlappen
-  const R      = 1.4;   // Kreis-Radius
-  const R_SEL  = 1.8;   // Ausgewählt
-  const FONT   = 1.5;   // Font-Size
+  const R      = 1.3;   // Kreis-Radius (viewBox-Einheiten)
+  const R_SEL  = 1.9;   // Ausgewählt – deutlich größer
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
@@ -228,19 +225,21 @@ export default function VenueMapPage() {
         style={{ touchAction: 'none' }}
       >
         {/* ── Bild + SVG zusammen transformiert ── */}
-        {/* Kein separater Marker-Layer mehr – SVG liegt direkt auf dem Bild */}
-        <motion.div
+        <div
           className="absolute inset-0"
-          animate={{ x: offset.x, y: offset.y, scale }}
-          transition={animating ? SMOOTH : { duration: 0 }}
-          style={{ transformOrigin: 'center center', willChange: 'transform' }}
+          style={{
+            transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+            transformOrigin: 'center center',
+            transition: animating ? 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+            // willChange bewusst weggelassen → kein GPU-Layer → Bild bleibt scharf
+          }}
         >
-          {/* Karte */}
           <img
             src="/assets/venue-map.png"
             alt="Geländeplan AGRA Messepark"
             className="absolute inset-0 w-full h-full object-contain"
             draggable={false}
+            style={{ imageRendering: 'auto' }}  // Standard-Interpolation für Fotos
             onLoad={(e) => setImgNat({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
           />
 
@@ -262,11 +261,8 @@ export default function VenueMapPage() {
                 style={{ overflow: 'visible' }}
               >
                 {mapPoints.map((point, idx) => {
-                  // Punkte wurden in % des Bildes gesetzt (0–100 auf beiden Achsen)
-                  // Umrechnen auf die neue viewBox-Skala
                   const px    = (point.x / 100) * vbW;
                   const py    = (point.y / 100) * vbH;
-                  const num   = idx + 1;
                   const meta  = TYPE_META[point.type] || TYPE_META.other;
                   const vis   = activeFilters.has(point.type);
                   const isSel = selectedPoint?.id === point.id;
@@ -275,17 +271,17 @@ export default function VenueMapPage() {
                   return (
                     <g key={point.id} style={{ cursor: 'pointer' }}
                       onClick={(e) => { e.stopPropagation(); if (!isDraggingRef.current) setSelectedPoint(isSel ? null : point); }}>
+                      {/* Glow-Ring wenn ausgewählt */}
                       {isSel && (
                         <circle cx={px} cy={py} r={(R_SEL + 1.2) * cs}
                           fill="none" stroke={meta.color} strokeWidth={0.5 * cs} opacity="0.5" />
                       )}
+                      {/* Äußerer weißer Ring für Lesbarkeit auf der Karte */}
+                      <circle cx={px} cy={py} r={r + 0.25 * cs}
+                        fill="white" opacity="0.9" />
+                      {/* Farbiger Hauptkreis */}
                       <circle cx={px} cy={py} r={r}
-                        fill={meta.color} stroke="rgba(0,0,0,0.6)" strokeWidth={0.3 * cs} />
-                      <text x={px} y={py} textAnchor="middle" dominantBaseline="central"
-                        fontSize={FONT * cs} fontWeight="700" fontFamily="system-ui, sans-serif"
-                        fill="white" style={{ pointerEvents: 'none', userSelect: 'none' }}>
-                        {num}
-                      </text>
+                        fill={meta.color} />
                     </g>
                   );
                 })}
@@ -295,21 +291,24 @@ export default function VenueMapPage() {
                   const py = (youAreHere.y / 100) * vbH;
                   return (
                     <g>
-                      <circle cx={px} cy={py} r={(R + 1.5) * cs}
-                        fill="none" stroke="#2F6F5E" strokeWidth={0.4 * cs} opacity="0.6" />
+                      {/* Pulsierender äußerer Ring */}
+                      <circle cx={px} cy={py} r={(R + 2) * cs}
+                        fill="none" stroke="#2F6F5E" strokeWidth={0.4 * cs} opacity="0.5" />
+                      <circle cx={px} cy={py} r={(R + 0.8) * cs}
+                        fill="none" stroke="#2F6F5E" strokeWidth={0.5 * cs} opacity="0.8" />
+                      {/* Weißer Ring */}
+                      <circle cx={px} cy={py} r={(R + 0.3) * cs}
+                        fill="white" />
+                      {/* Grüner Kern */}
                       <circle cx={px} cy={py} r={R * cs}
-                        fill="#2F6F5E" stroke="white" strokeWidth={0.4 * cs} />
-                      <text x={px} y={py} textAnchor="middle" dominantBaseline="central"
-                        fontSize={(FONT - 0.2) * cs} fill="white" fontWeight="700"
-                        fontFamily="system-ui, sans-serif"
-                        style={{ pointerEvents: 'none', userSelect: 'none' }}>★</text>
+                        fill="#2F6F5E" />
                     </g>
                   );
                 })()}
               </svg>
             );
           })()}
-        </motion.div>
+        </div>
 
         {/* ── Zoom-Zone Buttons unten ── */}
         {mapZones.length > 0 && (
