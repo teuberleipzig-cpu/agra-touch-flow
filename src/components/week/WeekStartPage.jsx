@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { MapPin, CalendarDays, Info } from 'lucide-react';
 import { getWeekEvents } from '@/services/events/getWeekEvents.js';
 import { useKiosk } from '../kiosk/KioskContext';
+import { useEventTranslation } from '@/hooks/useEventTranslation.js';
 import LanguageSelector from '../kiosk/LanguageSelector';
 import EventSlider from './EventSlider';
 
@@ -15,6 +16,7 @@ const NAV_BUTTONS = [
 export default function WeekStartPage({ onNavigate }) {
   const { t } = useKiosk();
   const [events, setEvents] = useState([]);
+  const { translatedEvents } = useEventTranslation(events);
 
   useEffect(() => {
     getWeekEvents().then(setEvents);
@@ -41,7 +43,7 @@ export default function WeekStartPage({ onNavigate }) {
 
       {/* ── MAIN SLIDER ── */}
       <div className="flex-1 min-h-0">
-        <EventSlider events={events} />
+        <EventSlider events={translatedEvents} />
       </div>
 
       {/* ── BOTTOM NAVIGATION ── */}

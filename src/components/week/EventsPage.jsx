@@ -3,17 +3,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CalendarDays, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { getWeekEvents } from '@/services/events/getWeekEvents.js';
 import { useKiosk } from '../kiosk/KioskContext';
+import { useEventTranslation } from '@/hooks/useEventTranslation.js';
+import { formatDate } from '../../utils/formatDate';
 import EventDetail from './EventDetail.jsx';
-import moment from 'moment';
-import 'moment/locale/de';
 
-moment.locale('de');
+
+
+
 
 export default function EventsPage() {
   const { language } = useKiosk();
-  const [events, setEvents] = useState([]);
+  const [events, setEvents]   = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeIndex, setActiveIndex]     = useState(0);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
@@ -22,21 +24,11 @@ export default function EventsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const getTitle = (e) => {
-    if (!e) return '';
-    if (language === 'en' && e.title_en) return e.title_en;
-    if (language === 'ar' && e.title_ar) return e.title_ar;
-    if (language === 'uk' && e.title_uk) return e.title_uk;
-    return e.title;
-  };
+  const { translatedEvents, isTranslating } = useEventTranslation(events);
 
-  const getDesc = (e) => {
-    if (!e) return '';
-    if (language === 'en' && e.description_en) return e.description_en;
-    if (language === 'ar' && e.description_ar) return e.description_ar;
-    if (language === 'uk' && e.description_uk) return e.description_uk;
-    return e.description;
-  };
+  // getTitle/getDesc nutzen die bereits übersetzten Events
+  const getTitle = (e) => e?.title || '';
+  const getDesc  = (e) => e?.description || '';
 
   if (selectedEvent) {
     return (
@@ -49,7 +41,7 @@ export default function EventsPage() {
     );
   }
 
-  const active = events[activeIndex];
+  const active = translatedEvents[activeIndex];
 
   return (
     <div className="h-screen flex flex-col bg-background" style={{ overflow: 'hidden', touchAction: 'pan-y' }}>
@@ -100,7 +92,7 @@ export default function EventsPage() {
             {/* Event info overlay */}
             <div className="absolute inset-x-0 bottom-0 px-6 pb-6">
               <p className="font-interface text-primary font-semibold text-sm uppercase tracking-widest mb-1">
-                {moment(active.start_date).format('D. MMMM YYYY')}
+                {formatDate(active.start_date, 'D. MMMM YYYY', language)}
               </p>
               <h2 className="font-display font-extrabold text-white leading-tight"
                   style={{ fontSize: 'clamp(1.3rem, 4vw, 2rem)' }}>
@@ -122,11 +114,11 @@ export default function EventsPage() {
       </div>
 
       {/* ── THUMBNAIL STRIP ── */}
-      {events.length > 0 && (
+      {translatedEvents.length > 0 && (
         <div className="flex-none px-5 pb-28 relative z-50">
           <div className="flex gap-3 overflow-x-auto pb-3"
                style={{ WebkitOverflowScrolling: 'touch' }}>
-            {events.map((event, i) => (
+            {translatedEvents.map((event, i) => (
               <motion.button
                 key={event.id}
                 whileTap={{ scale: 0.92 }}
@@ -137,7 +129,7 @@ export default function EventsPage() {
                 {/* Date label above tile */}
                 <span className={`font-interface text-sm font-semibold leading-none text-center
                   ${i === activeIndex ? 'text-primary' : 'text-white/35'}`}>
-                  {moment(event.start_date).format('D.M.')}
+                  {formatDate(event.start_date, 'D.M.', language)}
                 </span>
 
                 {/* Tile */}
