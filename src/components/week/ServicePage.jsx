@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, ScrollText, Phone, MapPinned, Train, ChevronRight, ArrowLeft, Car, Tram, Globe } from 'lucide-react';
+import { Clock, ScrollText, Phone, MapPinned, Train, ChevronRight, ArrowLeft, Car, TramFront, Globe } from 'lucide-react';
 import { useKiosk } from '../kiosk/KioskContext';
 import BeaconHeader from '../kiosk/BeaconHeader';
 
@@ -34,7 +34,7 @@ const SERVICE_SECTIONS = [
 // Anfahrts-Unterpunkte
 const DIRECTION_TYPES = [
   { key: 'car',   icon: Car,   label: 'Auto',        labelEn: 'Car' },
-  { key: 'tram',  icon: Tram,  label: 'Straßenbahn', labelEn: 'Tram' },
+  { key: 'tram',  icon: TramFront, label: 'Straßenbahn', labelEn: 'Tram' },
   { key: 'train', icon: Globe, label: 'Fernverkehr', labelEn: 'Long Distance' },
 ];
 
