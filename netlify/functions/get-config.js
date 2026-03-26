@@ -1,7 +1,5 @@
 /**
  * get-config.js – Netlify Function
- * Liest die Kiosk-Config aus dem Netlify Blob Store.
- * Endpunkt: GET /.netlify/functions/get-config
  */
 
 const DEFAULTS = {
@@ -11,6 +9,7 @@ const DEFAULTS = {
   emergency_type: 'evacuation',
   emergency_message: null,
   active_event_id: null,
+  theme_mode: 'dark',
 };
 
 export async function handler(event) {
@@ -31,15 +30,15 @@ export async function handler(event) {
       siteID: process.env.NETLIFY_SITE_ID,
       token: process.env.NETLIFY_AUTH_TOKEN,
     });
+
     const config = await store.get('config', { type: 'json' });
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(config ?? DEFAULTS),
+      body: JSON.stringify({ ...DEFAULTS, ...(config || {}) }),
     };
   } catch (err) {
-    console.error('Blob store error:', err);
     return {
       statusCode: 200,
       headers,

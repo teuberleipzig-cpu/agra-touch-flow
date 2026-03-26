@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Mic2, CalendarDays, Info } from 'lucide-react';
 import { useKiosk } from '../kiosk/KioskContext';
@@ -9,10 +9,10 @@ import 'moment/locale/de';
 moment.locale('de');
 
 const NAV_BUTTONS = [
-  { key: 'standplan',  icon: MapPin,        label: 'Standplan',               sub: 'wie Geländeplan\nnur mit Ständen' },
-  { key: 'program',    icon: Mic2,           label: 'Programm',                sub: '' },
-  { key: 'events',     icon: CalendarDays,   label: 'Kommende\nVeranstaltungen', sub: '' },
-  { key: 'service',    icon: Info,           label: 'Service &\nInformation',   sub: '' },
+  { key: 'standplan', icon: MapPin, label: 'Standplan', sub: 'wie Geländeplan\nnur mit Ständen' },
+  { key: 'program', icon: Mic2, label: 'Programm', sub: '' },
+  { key: 'events', icon: CalendarDays, label: 'Kommende\nVeranstaltungen', sub: '' },
+  { key: 'service', icon: Info, label: 'Service &\nInformation', sub: '' },
 ];
 
 // Preview cards for each section with stock images
@@ -74,7 +74,7 @@ export default function EventModeStartPage({ event, onNavigate }) {
   const activeCard = PREVIEW_CARDS[activeCardIndex];
 
   return (
-    <div className="h-screen flex flex-col bg-[#08090B] overflow-hidden">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
 
       {/* Background image */}
       {event?.image_url && (
@@ -95,8 +95,8 @@ export default function EventModeStartPage({ event, onNavigate }) {
             </div>
           )}
           <div>
-            <p className="font-display font-bold text-white text-base leading-tight tracking-tight">AGRA</p>
-            <p className="font-interface text-white/40 text-xs tracking-widest uppercase leading-none">Messepark Leipzig</p>
+            <p className="font-display font-bold text-foreground text-base leading-tight tracking-tight">AGRA</p>
+            <p className="font-interface text-foreground/40 text-xs tracking-widest uppercase leading-none">Messepark Leipzig</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export default function EventModeStartPage({ event, onNavigate }) {
       {/* EVENT TITLE */}
       <div className="relative z-10 flex-none px-6 pt-5 pb-3">
         <h1
-          className="font-display font-extrabold text-white tracking-tight leading-none uppercase"
+          className="font-display font-extrabold text-foreground tracking-tight leading-none uppercase"
           style={{
             fontSize: 'clamp(1.8rem, 7vw, 3rem)',
             borderLeft: `5px solid ${accentColor}`,
@@ -188,23 +188,37 @@ export default function EventModeStartPage({ event, onNavigate }) {
       </div>
 
       {/* BOTTOM 4 BUTTONS */}
-      <div className="relative z-10 flex-none px-4 pb-5 grid grid-cols-4 gap-2">
+      <div className="relative z-10 flex-none px-4 pb-5 grid grid-cols-4 gap-3 kiosk-bottom-nav kiosk-bottom-nav--event">
         {NAV_BUTTONS.map(({ key, icon: Icon, label }) => (
           <motion.button
             key={key}
-            whileTap={{ scale: 0.92 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => onNavigate(key)}
             className={`
-              flex flex-col items-center justify-center gap-2 rounded-2xl border py-4 px-1 touch-manipulation transition-all
+              flex flex-col items-center justify-center rounded-[1.75rem] border px-2 touch-manipulation transition-all
+              min-h-[138px]
               ${activeCardIndex === PREVIEW_CARDS.findIndex(c => c.key === key)
                 ? 'bg-white/[0.1] border-white/30'
                 : 'kiosk-surface border-white/[0.08]'
               }
             `}
+            style={{
+              minHeight: 'var(--kiosk-event-nav-button-height)',
+              gap: 'var(--kiosk-event-nav-gap)',
+            }}
           >
-            <Icon className="w-6 h-6 text-white/70" strokeWidth={1.5} />
-            <span className="font-interface text-white/70 text-center leading-tight whitespace-pre-line"
-              style={{ fontSize: 'clamp(0.55rem, 1.8vw, 0.72rem)' }}>
+            <Icon
+              className="text-foreground/75"
+              strokeWidth={1.6}
+              style={{
+                width: 'var(--kiosk-event-nav-icon)',
+                height: 'var(--kiosk-event-nav-icon)',
+              }}
+            />
+            <span
+              className="font-interface text-foreground/80 text-center leading-tight whitespace-pre-line"
+              style={{ fontSize: 'var(--kiosk-event-nav-font-size)' }}
+            >
               {label}
             </span>
           </motion.button>

@@ -212,9 +212,9 @@ export function KioskProvider({ children }) {
   const [config, setConfig] = useState(null);
   const [activeEvent, setActiveEvent] = useState(null);
   const [isIdle, setIsIdle] = useState(false);
-  const isDarkMode = true;
   const idleTimer = useRef(null);
   const idleTimeout = config?.idle_timeout_seconds || 60;
+  const isDarkMode = (config?.theme_mode || 'dark') !== 'light';
 
   const t = useCallback((key) => {
     return TRANSLATIONS[language]?.[key] || TRANSLATIONS['de'][key] || key;
@@ -258,6 +258,12 @@ export function KioskProvider({ children }) {
       if (pollTimer) clearInterval(pollTimer);
     };
   }, []);
+
+  // Theme vom Config-Objekt direkt aufs Root-Element schreiben
+  useEffect(() => {
+    const theme = config?.theme_mode === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [config]);
 
   // Idle-Detection (unverändert)
   useEffect(() => {

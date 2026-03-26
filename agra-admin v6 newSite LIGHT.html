@@ -1,0 +1,2334 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AGRA Kiosk Admin</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #08090B;
+      --bg2:        #0f1112;
+      --bg3:        #161a1b;
+      --border:     rgba(255,255,255,0.08);
+      --border2:    rgba(255,255,255,0.13);
+      --text:       #f0f4f2;
+      --text2:      rgba(240,244,242,0.5);
+      --text3:      rgba(240,244,242,0.25);
+      --primary:    #2F6F5E;
+      --primary-bg: rgba(47,111,94,0.15);
+      --primary-bd: rgba(47,111,94,0.40);
+      --red:        #FF003C;
+      --red-bg:     rgba(255,0,60,0.12);
+      --red-bd:     rgba(255,0,60,0.35);
+      --blue:       #60A5FA;
+      --blue-bg:    rgba(96,165,250,0.12);
+      --blue-bd:    rgba(96,165,250,0.35);
+      --radius:     14px;
+      --radius-sm:  9px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 15px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Layout ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+      flex-shrink: 0;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 40px; height: 40px; border-radius: 11px;
+      background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 18px; color: #fff;
+      flex-shrink: 0;
+    }
+    .logo-text p:first-child { font-weight: 700; font-size: 17px; }
+    .logo-text p:last-child  { font-size: 11px; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; }
+
+    .mode-badge {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px; border-radius: var(--radius-sm);
+      border: 1px solid; font-size: 13px; font-weight: 600;
+    }
+    .mode-badge .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .btn-logout {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border2);
+      color: var(--text2); background: transparent;
+      cursor: pointer; font-size: 13px; transition: color .15s;
+    }
+    .btn-logout:hover { color: var(--text); }
+
+    .body {
+      display: flex; flex: 1; min-height: 0;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 210px; flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      padding: 20px 10px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .nav-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent; color: var(--text2);
+      cursor: pointer; font-size: 14px; font-weight: 500;
+      transition: all .15s; text-align: left; width: 100%;
+    }
+    .nav-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
+    .nav-btn.active {
+      color: var(--primary); background: var(--primary-bg);
+      border-color: var(--primary-bd);
+    }
+    .nav-btn svg { flex-shrink: 0; }
+
+    /* ── Content ── */
+    .content {
+      flex: 1; overflow-y: auto;
+      padding: 36px 40px;
+    }
+    .section { display: none; max-width: 680px; }
+    .section.active { display: block; }
+
+    .section-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .section-sub   { color: var(--text3); font-size: 13px; margin-bottom: 28px; }
+
+    /* ── Cards / Rows ── */
+    .card {
+      background: rgba(255,255,255,.025);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin-bottom: 14px;
+    }
+    .card-label {
+      font-size: 11px; font-weight: 600; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--text3);
+      margin-bottom: 14px;
+    }
+
+    /* ── Mode buttons ── */
+    .mode-grid { display: flex; flex-direction: column; gap: 10px; }
+    .mode-btn {
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px 20px; border-radius: var(--radius);
+      border: 2px solid var(--border); background: rgba(255,255,255,.02);
+      cursor: pointer; text-align: left; transition: all .18s; width: 100%;
+      color: var(--text);
+    }
+    .mode-btn:hover { border-color: var(--border2); }
+    .mode-btn .mode-icon {
+      width: 44px; height: 44px; border-radius: 11px;
+      background: rgba(255,255,255,.05);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .mode-btn .mode-info p:first-child { font-weight: 700; font-size: 16px; }
+    .mode-btn .mode-info p:last-child  { font-size: 13px; color: var(--text3); margin-top: 2px; }
+    .mode-btn .active-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: currentColor; margin-left: auto; flex-shrink: 0;
+      opacity: 0;
+    }
+    .mode-btn.selected .active-dot { opacity: 1; }
+
+    .mode-btn.week.selected   { border-color: var(--primary-bd); background: var(--primary-bg); color: var(--primary); }
+    .mode-btn.event.selected  { border-color: var(--blue-bd);    background: var(--blue-bg);    color: var(--blue); }
+    .mode-btn.emergency.selected { border-color: var(--red-bd); background: var(--red-bg); color: var(--red); }
+
+    .mode-btn.week .mode-icon   { color: var(--primary); }
+    .mode-btn.event .mode-icon  { color: var(--blue); }
+    .mode-btn.emergency .mode-icon { color: var(--red); }
+
+    /* ── Emergency type grid ── */
+    .etype-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .etype-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 13px 16px; border-radius: var(--radius-sm);
+      border: 2px solid var(--border); background: rgba(255,255,255,.02);
+      cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text2);
+      transition: all .15s; text-align: left;
+    }
+    .etype-btn:hover { border-color: var(--border2); color: var(--text); }
+    .etype-btn.selected { border-color: var(--red-bd); background: var(--red-bg); color: var(--red); }
+    .etype-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); margin-left: auto; opacity: 0; }
+    .etype-btn.selected .etype-dot { opacity: 1; }
+
+    /* ── Inputs ── */
+    textarea, input[type=text], input[type=url], input[type=number], select {
+      width: 100%; background: rgba(255,255,255,.04);
+      border: 1px solid var(--border2); border-radius: var(--radius-sm);
+      color: var(--text); font-family: inherit; font-size: 14px;
+      padding: 11px 14px; outline: none; transition: border-color .15s;
+      resize: vertical;
+    }
+    textarea:focus, input:focus, select:focus { border-color: var(--primary); }
+    textarea::placeholder, input::placeholder { color: var(--text3); }
+
+    /* ── Idle timeout ── */
+    .timeout-row {
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px 20px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: rgba(255,255,255,.02);
+      margin-bottom: 14px;
+    }
+    .timeout-row svg { color: var(--primary); flex-shrink: 0; }
+    .timeout-row .timeout-label { flex: 1; }
+    .timeout-row .timeout-label p:first-child { font-weight: 500; }
+    .timeout-row .timeout-label p:last-child   { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .timeout-controls { display: flex; align-items: center; gap: 10px; }
+    .timeout-btn {
+      width: 38px; height: 38px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border2); background: rgba(255,255,255,.04);
+      color: var(--text2); font-size: 20px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: color .15s;
+    }
+    .timeout-btn:hover { color: var(--text); }
+    .timeout-val { font-size: 22px; font-weight: 700; width: 64px; text-align: center; }
+    .preset-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .preset-btn {
+      padding: 7px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,.03);
+      color: var(--text3); font-size: 13px; cursor: pointer;
+      transition: all .15s;
+    }
+    .preset-btn:hover { color: var(--text); border-color: var(--border2); }
+    .preset-btn.active { color: var(--primary); background: var(--primary-bg); border-color: var(--primary-bd); }
+
+    /* ── Screensaver images ── */
+    .img-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .img-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,.02);
+    }
+    .img-thumb {
+      width: 60px; height: 38px; border-radius: 6px;
+      object-fit: cover; background: rgba(255,255,255,.04);
+      flex-shrink: 0;
+    }
+    .img-url { flex: 1; font-size: 13px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .img-del {
+      width: 30px; height: 30px; border-radius: 7px;
+      border: none; background: transparent; color: var(--text3);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all .15s; flex-shrink: 0;
+    }
+    .img-del:hover { color: var(--red); background: var(--red-bg); }
+    .img-add-row { display: flex; gap: 10px; }
+    .btn-add {
+      display: flex; align-items: center; gap: 7px;
+      padding: 10px 18px; border-radius: var(--radius-sm);
+      border: 1px solid var(--primary-bd); background: var(--primary-bg);
+      color: var(--primary); font-size: 13px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: background .15s;
+    }
+    .btn-add:hover { background: rgba(47,111,94,.25); }
+    .empty-state {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); color: var(--text3); font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    /* ── Info box ── */
+    .info-box {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 14px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,.02);
+      color: var(--text3); font-size: 13px; line-height: 1.6;
+      margin-top: 14px;
+    }
+    .info-box svg { flex-shrink: 0; margin-top: 1px; }
+    .info-box code { color: rgba(47,111,94,.8); font-size: 12px; }
+
+    /* ── Export ── */
+    .json-box {
+      position: relative; background: rgba(255,255,255,.03);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 20px; margin-bottom: 20px;
+    }
+    .json-box pre {
+      font-family: 'Consolas','Fira Code',monospace;
+      font-size: 13px; color: rgba(47,111,94,.9);
+      white-space: pre-wrap; line-height: 1.7;
+    }
+    .btn-copy {
+      position: absolute; top: 12px; right: 12px;
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 13px; border-radius: 8px;
+      border: 1px solid var(--border2); background: rgba(255,255,255,.06);
+      color: var(--text2); font-size: 12px; cursor: pointer;
+      transition: all .15s;
+    }
+    .btn-copy:hover { color: var(--text); }
+    .btn-copy.copied { color: var(--primary); border-color: var(--primary-bd); }
+
+    .steps ol { padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .steps li { display: flex; align-items: flex-start; gap: 12px; font-size: 13px; color: var(--text2); }
+    .steps .num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--primary-bg); color: var(--primary);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .steps code { color: rgba(47,111,94,.7); font-size: 12px; }
+
+    /* ── Server save button ── */
+    .btn-server-save {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 20px; border-radius: var(--radius-sm);
+      border: 1px solid var(--blue-bd); background: var(--blue-bg);
+      color: var(--blue); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background .15s; margin-bottom: 20px;
+    }
+    .btn-server-save:hover { background: rgba(96,165,250,.22); }
+    .btn-server-save:disabled { opacity: .4; cursor: default; }
+
+    /* ── Save bar ── */
+    .savebar {
+      flex-shrink: 0; border-top: 1px solid var(--border);
+      padding: 16px 32px; display: flex; align-items: center;
+      justify-content: space-between; gap: 16px;
+      background: var(--bg);
+    }
+    .savebar p { font-size: 13px; color: var(--text3); }
+    .btn-save {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 24px; border-radius: var(--radius-sm);
+      border: 1px solid var(--primary);
+      background: var(--primary); color: #fff;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-save:hover { background: rgba(47,111,94,.85); }
+    .btn-save.saved { background: var(--primary-bg); color: var(--primary); border-color: var(--primary-bd); }
+
+    /* ── PIN screen ── */
+    #pin-screen {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    .pin-wrap { display: flex; flex-direction: column; align-items: center; gap: 36px; }
+    .pin-logo {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .pin-logo .logo { width: 56px; height: 56px; font-size: 24px; }
+    .pin-logo p:first-of-type { font-weight: 700; font-size: 20px; }
+    .pin-logo p:last-of-type  { font-size: 12px; color: var(--text3); letter-spacing: .1em; text-transform: uppercase; }
+    .pin-inputs { display: flex; gap: 14px; }
+    .pin-input {
+      width: 60px; height: 60px; text-align: center;
+      font-size: 22px; font-weight: 700; border-radius: 14px;
+      background: rgba(255,255,255,.06); border: 2px solid var(--border);
+      color: var(--text); outline: none; transition: border-color .15s;
+      /* override body overflow:hidden on mobile */
+      -webkit-user-select: text; user-select: text;
+    }
+    .pin-input:focus { border-color: var(--primary); background: rgba(255,255,255,.08); }
+    .pin-input.filled { border-color: var(--primary); }
+    .pin-input.error  { border-color: var(--red); animation: shake .3s; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    .pin-hint { font-size: 14px; color: var(--text2); }
+    .pin-error { font-size: 13px; color: var(--red); min-height: 20px; }
+    .pin-show {
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: none; color: var(--text3);
+      font-size: 12px; cursor: pointer; transition: color .15s;
+    }
+    .pin-show:hover { color: var(--text2); }
+
+    /* ── Warning banner ── */
+    .warn-banner {
+      display: none; align-items: center; gap: 10px;
+      padding: 12px 16px; border-radius: var(--radius-sm);
+      border: 1px solid var(--red-bd); background: var(--red-bg);
+      color: var(--red); font-size: 13px; margin-bottom: 20px;
+    }
+    .warn-banner.show { display: flex; }
+
+    /* Upload */
+    .upload-zone {
+      border: 2px dashed var(--border2); border-radius: var(--radius);
+      padding: 32px 20px; text-align: center; cursor: pointer;
+      transition: all .18s; margin-bottom: 14px;
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--primary); background: var(--primary-bg); }
+    .upload-zone input { display: none; }
+    .upload-zone svg { color: var(--text3); margin-bottom: 10px; }
+    .upload-zone p { color: var(--text3); font-size: 13px; }
+    .upload-zone p strong { color: var(--primary); }
+    .upload-progress {
+      display: none; padding: 12px 16px; border-radius: var(--radius-sm);
+      background: var(--primary-bg); border: 1px solid var(--primary-bd);
+      color: var(--primary); font-size: 13px; margin-bottom: 14px;
+    }
+    .upload-progress.show { display: block; }
+
+    /* Schedule */
+    .schedule-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .schedule-row {
+      background: rgba(255,255,255,.02); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px;
+    }
+    .schedule-row .row-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .schedule-row .row-top img { width: 56px; height: 36px; object-fit: cover; border-radius: 6px; background: rgba(255,255,255,.04); }
+    .schedule-row .row-label { flex: 1; font-size: 13px; color: var(--text2); font-weight: 500; }
+    .schedule-row .row-del {
+      width: 28px; height: 28px; border-radius: 7px; border: none;
+      background: transparent; color: var(--text3); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all .15s;
+    }
+    .schedule-row .row-del:hover { color: var(--red); background: var(--red-bg); }
+    .day-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .day-chip {
+      padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border); background: transparent; color: var(--text3);
+      cursor: pointer; transition: all .15s;
+    }
+    .day-chip.active { background: var(--primary-bg); border-color: var(--primary-bd); color: var(--primary); }
+    .time-row { display: flex; align-items: center; gap: 10px; }
+    .time-row label { font-size: 12px; color: var(--text3); white-space: nowrap; }
+    .time-input {
+      background: rgba(255,255,255,.04); border: 1px solid var(--border2);
+      border-radius: 8px; color: var(--text); font-family: inherit;
+      font-size: 14px; padding: 7px 10px; outline: none; width: 100px;
+      transition: border-color .15s;
+    }
+    .time-input:focus { border-color: var(--primary); }
+    .schedule-add {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 18px; border-radius: var(--radius-sm);
+      border: 1px dashed var(--border2); background: transparent;
+      color: var(--text3); font-size: 13px; font-weight: 500;
+      cursor: pointer; width: 100%; justify-content: center;
+      transition: all .15s;
+    }
+    .schedule-add:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+
+    /* ── Geländeplan ── */
+    .map-editor-wrap {
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .map-canvas-container {
+      position: relative; width: 100%;
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; cursor: crosshair;
+      user-select: none;
+    }
+    .map-canvas-container img {
+      display: block; width: 100%; height: auto;
+      pointer-events: none; opacity: 0.85;
+    }
+    .map-canvas-container.mode-zoom { cursor: cell; }
+    .map-canvas-container.mode-stele { cursor: pointer; }
+    .map-no-image {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 260px; gap: 10px; color: var(--text3); font-size: 14px;
+    }
+    .map-point-marker {
+      position: absolute; transform: translate(-50%, -50%);
+      pointer-events: all; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .map-point-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.5);
+      transition: transform .15s;
+    }
+    .map-point-marker:hover .map-point-dot { transform: scale(1.3); }
+    .map-point-label {
+      font-size: 10px; font-weight: 600; color: #fff; white-space: nowrap;
+      background: rgba(0,0,0,.7); padding: 2px 6px; border-radius: 4px;
+    }
+    .map-zone-marker {
+      position: absolute; transform: translate(-50%, -50%);
+      pointer-events: all; cursor: pointer;
+      border: 2px dashed rgba(250,204,21,.7);
+      border-radius: 8px; padding: 4px 8px;
+      background: rgba(250,204,21,.1);
+      font-size: 10px; color: #FACC15; font-weight: 600;
+      white-space: nowrap;
+    }
+    .map-stele-marker {
+      position: absolute; transform: translate(-50%, -50%);
+      pointer-events: all; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .map-stele-pulse {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--primary); border: 2px solid #fff;
+      box-shadow: 0 0 0 4px rgba(47,111,94,.3);
+    }
+    .map-stele-label {
+      font-size: 10px; font-weight: 700; color: var(--primary); white-space: nowrap;
+      background: rgba(0,0,0,.8); padding: 2px 6px; border-radius: 4px;
+    }
+
+    .map-toolbar {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 6px;
+    }
+    .map-tool-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,.03);
+      color: var(--text2); font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: all .15s;
+    }
+    .map-tool-btn:hover { color: var(--text); border-color: var(--border2); }
+    .map-tool-btn.active { color: var(--primary); background: var(--primary-bg); border-color: var(--primary-bd); }
+    .map-tool-btn.zone-active { color: #FACC15; background: rgba(250,204,21,.1); border-color: rgba(250,204,21,.35); }
+    .map-tool-btn.stele-active { color: var(--blue); background: var(--blue-bg); border-color: var(--blue-bd); }
+
+    .map-legend {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;
+    }
+    .map-legend-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--text3);
+    }
+    .map-legend-dot {
+      width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(255,255,255,.5);
+    }
+
+    .map-point-list { display: flex; flex-direction: column; gap: 6px; }
+    .map-point-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,.02);
+      font-size: 13px;
+    }
+    .map-point-row .type-badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600;
+    }
+    .map-point-row .coords { font-size: 11px; color: var(--text3); margin-left: auto; font-family: monospace; }
+    .map-point-row .del-btn {
+      width: 26px; height: 26px; border-radius: 6px; border: none;
+      background: transparent; color: var(--text3); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all .15s;
+    }
+    .map-point-row .del-btn:hover { color: var(--red); background: var(--red-bg); }
+
+    .stele-list { display: flex; flex-direction: column; gap: 8px; }
+    .stele-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: rgba(255,255,255,.02);
+    }
+    .stele-row .stele-name { font-weight: 600; font-size: 14px; flex: 1; }
+    .stele-row .stele-pos { font-size: 12px; color: var(--text3); font-family: monospace; }
+    .stele-row .stele-set-btn {
+      padding: 6px 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border2); background: transparent;
+      color: var(--text2); font-size: 12px; cursor: pointer; transition: all .15s;
+    }
+    .stele-row .stele-set-btn:hover { color: var(--primary); border-color: var(--primary-bd); background: var(--primary-bg); }
+    .stele-row .stele-set-btn.picking { color: var(--blue); border-color: var(--blue-bd); background: var(--blue-bg); }
+    .stele-row .del-btn {
+      width: 28px; height: 28px; border-radius: 7px; border: none;
+      background: transparent; color: var(--text3); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all .15s;
+    }
+    .stele-row .del-btn:hover { color: var(--red); background: var(--red-bg); }
+
+    .map-hint {
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      background: var(--blue-bg); border: 1px solid var(--blue-bd);
+      color: var(--blue); font-size: 13px; display: none;
+    }
+    .map-hint.show { display: block; }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; display: none;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: var(--bg2); border: 1px solid var(--border2);
+      border-radius: var(--radius); padding: 28px; min-width: 320px; max-width: 440px; width: 90%;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 18px; }
+    .modal-field { margin-bottom: 14px; }
+    .modal-field label { display: block; font-size: 12px; color: var(--text3); margin-bottom: 6px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-confirm {
+      flex: 1; padding: 11px; border-radius: var(--radius-sm);
+      border: 1px solid var(--primary); background: var(--primary);
+      color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .btn-cancel {
+      padding: 11px 20px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border2); background: transparent;
+      color: var(--text2); font-size: 14px; cursor: pointer; transition: color .15s;
+    }
+    .btn-cancel:hover { color: var(--text); }
+
+    .type-select {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    }
+    .type-opt {
+      padding: 8px 6px; border-radius: var(--radius-sm); text-align: center;
+      border: 2px solid var(--border); background: rgba(255,255,255,.02);
+      cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text2);
+      transition: all .15s;
+    }
+    .type-opt:hover { border-color: var(--border2); color: var(--text); }
+    .type-opt.selected { border-color: currentColor; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     PIN SCREEN
+══════════════════════════════════════════════════════════════ -->
+<div id="pin-screen">
+  <div class="pin-wrap">
+    <div class="pin-logo">
+      <div class="logo">A</div>
+      <p>AGRA Admin</p>
+      <p>Kiosk Steuerung</p>
+    </div>
+    <p class="pin-hint">PIN eingeben</p>
+    <div class="pin-inputs">
+      <input class="pin-input" id="p0" type="password" inputmode="numeric" maxlength="1" autocomplete="off" autofocus />
+      <input class="pin-input" id="p1" type="password" inputmode="numeric" maxlength="1" autocomplete="off" />
+      <input class="pin-input" id="p2" type="password" inputmode="numeric" maxlength="1" autocomplete="off" />
+      <input class="pin-input" id="p3" type="password" inputmode="numeric" maxlength="1" autocomplete="off" />
+    </div>
+    <p class="pin-error" id="pin-error"></p>
+    <button class="pin-show" id="pin-show-btn" onclick="togglePinVis()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      PIN anzeigen
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════════════════════ -->
+<div id="app" style="display:none; flex-direction:column; min-height:100vh; flex:1;">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo">A</div>
+      <div class="logo-text">
+        <p>AGRA Admin</p>
+        <p>Kiosk Steuerung</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="mode-badge" id="mode-badge">
+        <span class="dot"></span>
+        <span id="badge-label">Wochenmodus</span>
+      </div>
+      <button class="btn-logout" onclick="logout()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Abmelden
+      </button>
+    </div>
+  </div>
+
+  <div class="body">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <button class="nav-btn active" onclick="showSection('mode', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Modus
+      </button>
+      <button class="nav-btn" onclick="showSection('emergency', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Notfall
+      </button>
+      <button class="nav-btn" onclick="showSection('screensaver', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Screensaver
+      </button>
+      <button class="nav-btn" onclick="showSection('schedule', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="2"/></svg>
+        Zeitplan
+      </button>
+      <button class="nav-btn" onclick="showSection('system', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        System
+      </button>
+      <button class="nav-btn" onclick="showSection('map', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+        Geländeplan
+      </button>
+      <button class="nav-btn" onclick="showSection('export', this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Export
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- MODUS -->
+      <div class="section active" id="sec-mode">
+        <p class="section-title">Systemmodus</p>
+        <p class="section-sub">Wechselt alle Stelen innerhalb von 30 Sekunden (nach Server-Speicherung)</p>
+        <div class="mode-grid">
+          <button class="mode-btn week" onclick="setMode('week')">
+            <div class="mode-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <div class="mode-info">
+              <p>Wochenmodus</p>
+              <p>Zeigt kommende Veranstaltungen und Geländeplan</p>
+            </div>
+            <div class="active-dot"></div>
+          </button>
+          <button class="mode-btn event" onclick="setMode('event')">
+            <div class="mode-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="mode-info">
+              <p>Eventmodus</p>
+              <p>Zeigt aktive Messe / Veranstaltung mit Standplan</p>
+            </div>
+            <div class="active-dot"></div>
+          </button>
+          <button class="mode-btn emergency" onclick="setMode('emergency')">
+            <div class="mode-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="mode-info">
+              <p>Notfall</p>
+              <p>Überblendet alle Stelen mit dem Notfall-Overlay</p>
+            </div>
+            <div class="active-dot"></div>
+          </button>
+        </div>
+        <div class="warn-banner" id="emergency-warn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Notfallmodus aktiv. Alle Stelen zeigen das Notfall-Overlay. Typ und Nachricht unter „Notfall" festlegen.
+        </div>
+      </div>
+
+      <!-- NOTFALL -->
+      <div class="section" id="sec-emergency">
+        <p class="section-title">Notfall-Einstellungen</p>
+        <p class="section-sub">Wird angezeigt wenn der Modus auf „Notfall" gestellt ist</p>
+        <div class="card">
+          <p class="card-label">Notfall-Typ</p>
+          <div class="etype-grid">
+            <button class="etype-btn" id="etype-evacuation" onclick="setEtype('evacuation')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Evakuierung
+              <div class="etype-dot"></div>
+            </button>
+            <button class="etype-btn" id="etype-weather" onclick="setEtype('weather')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/><polyline points="13 11 9 17 15 17 11 23"/></svg>
+              Wetterwarnung
+              <div class="etype-dot"></div>
+            </button>
+            <button class="etype-btn" id="etype-security" onclick="setEtype('security')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Sicherheitshinweis
+              <div class="etype-dot"></div>
+            </button>
+            <button class="etype-btn" id="etype-general" onclick="setEtype('general')">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Allgemein
+              <div class="etype-dot"></div>
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <p class="card-label">Nachricht (optional)</p>
+          <textarea id="emergency-message" rows="3"
+            placeholder="z. B.: Bitte verlassen Sie sofort das Gebäude über die markierten Ausgänge."
+            oninput="cfg.emergency_message = this.value || null"></textarea>
+          <p style="font-size:12px;color:var(--text3);margin-top:8px;">Leer lassen für keine zusätzliche Nachricht</p>
+        </div>
+      </div>
+
+      <!-- SCREENSAVER -->
+      <div class="section" id="sec-screensaver">
+        <p class="section-title">Screensaver-Bilder</p>
+        <p class="section-sub">Diashow wenn keine Interaktion stattfindet. Bilder direkt hochladen oder per URL hinzufügen.</p>
+
+        <!-- Upload-Zone -->
+        <div class="upload-zone" id="upload-zone"
+          onclick="document.getElementById('file-input').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event)">
+          <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)" />
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p><strong>Bild hochladen</strong> oder hierher ziehen</p>
+          <p style="margin-top:4px;font-size:11px;">JPG, PNG, WebP · max. 4 MB</p>
+        </div>
+        <div class="upload-progress" id="upload-progress">⏳ Wird hochgeladen...</div>
+
+        <div class="img-list" id="img-list"></div>
+
+        <!-- Manuell per URL -->
+        <details style="margin-top:8px;">
+          <summary style="font-size:12px;color:var(--text3);cursor:pointer;user-select:none;">Oder per URL hinzufügen</summary>
+          <div class="img-add-row" style="margin-top:10px;">
+            <input type="url" id="new-img-url" placeholder="https://example.com/bild.jpg"
+              onkeydown="if(event.key==='Enter') addImage()" />
+            <button class="btn-add" onclick="addImage()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Hinzufügen
+            </button>
+          </div>
+        </details>
+      </div>
+
+      <!-- ZEITPLAN -->
+      <div class="section" id="sec-schedule">
+        <p class="section-title">Zeitplan</p>
+        <p class="section-sub">An bestimmten Wochentagen und Uhrzeiten ein Bild statt der Diashow zeigen</p>
+        <div class="schedule-list" id="schedule-list"></div>
+        <button class="schedule-add" onclick="addScheduleEntry()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Neuen Zeitplan-Eintrag hinzufügen
+        </button>
+        <div class="info-box" style="margin-top:16px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Wenn ein Zeitplan aktiv ist, ersetzt das Bild komplett die normale Diashow.
+          Die Stele prüft den Zeitplan jede Minute.
+        </div>
+      </div>
+
+      <!-- SYSTEM -->
+      <div class="section" id="sec-system">
+        <p class="section-title">Systemeinstellungen</p>
+        <p class="section-sub">Allgemeine Kiosk-Parameter</p>
+
+        <div class="card">
+          <p class="card-label">Darstellung</p>
+          <div class="modal-field" style="margin-bottom:0;">
+            <label for="theme-mode">Theme</label>
+            <select id="theme-mode" onchange="setThemeMode(this.value)">
+              <option value="dark">Dark Mode</option>
+              <option value="light">Light Mode</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="card-label" style="margin-bottom:10px;">Idle-Timeout</p>
+        <div class="timeout-row">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div class="timeout-label">
+            <p>Screensaver nach</p>
+            <p>Sekunden ohne Interaktion</p>
+          </div>
+          <div class="timeout-controls">
+            <button class="timeout-btn" onclick="adjustTimeout(-10)">−</button>
+            <span class="timeout-val" id="timeout-val">60s</span>
+            <button class="timeout-btn" onclick="adjustTimeout(10)">+</button>
+          </div>
+        </div>
+        <div class="preset-row" id="preset-row">
+          <button class="preset-btn" onclick="setTimeout2(30)">30s</button>
+          <button class="preset-btn" onclick="setTimeout2(60)">60s</button>
+          <button class="preset-btn" onclick="setTimeout2(90)">90s</button>
+          <button class="preset-btn" onclick="setTimeout2(120)">120s</button>
+          <button class="preset-btn" onclick="setTimeout2(180)">180s</button>
+        </div>
+        <div class="info-box" style="margin-top:20px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Minimum: 10 Sekunden · Maximum: 300 Sekunden
+        </div>
+      </div>
+
+      <!-- GELÄNDEPLAN -->
+      <div class="section" id="sec-map" style="max-width:820px;">
+        <p class="section-title">Geländeplan</p>
+        <p class="section-sub">Punkte setzen, Zoom-Zonen definieren und Stelen verwalten</p>
+
+        <!-- Karte Info -->
+        <div class="info-box" style="margin-bottom:10px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Karte wird aus dem Repo geladen: <code>/public/assets/venue-map.png</code> · Um die Karte zu aktualisieren, Datei im Repo ersetzen und neu deployen.
+        </div>
+
+        <!-- Optionale Vorschau-URL (nur für Admin-Ansicht lokal) -->
+        <div class="card" style="margin-bottom:14px;padding:14px 18px;">
+          <p class="card-label" style="margin-bottom:8px;">Vorschau-URL (optional, nur für diese Admin-Ansicht)</p>
+          <input type="url" id="map-preview-url"
+            placeholder="https://visionary-pothos-7489f7.netlify.app/assets/venue-map.png"
+            oninput="onMapPreviewUrlChange(this.value)"
+            style="margin-bottom:0;" />
+          <p style="font-size:11px;color:var(--text3);margin-top:6px;">
+            Chrome blockiert externe Bilder wenn die HTML als <code>file://</code> geöffnet ist.
+            Lösung: HTML über <strong style="color:var(--text2)">VS Code Live Server</strong> öffnen (<code>http://localhost:…</code>) – dann lädt die Karte automatisch.
+            Die URL wird im Browser gespeichert.
+          </p>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="map-toolbar">
+          <button class="map-tool-btn active" id="tool-point" onclick="setMapTool('point')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>
+            Punkt setzen
+          </button>
+          <button class="map-tool-btn" id="tool-zone" onclick="setMapTool('zone')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            Zoom-Zone
+          </button>
+          <button class="map-tool-btn" id="tool-stele" onclick="setMapTool('stele')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+            Stele platzieren
+          </button>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <button class="map-tool-btn" onclick="clearAllMapPoints()" style="color:var(--red);border-color:var(--red-bd);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+              Alle löschen
+            </button>
+          </div>
+        </div>
+
+        <!-- Hint -->
+        <div class="map-hint" id="map-hint"></div>
+
+        <!-- Karten-Canvas -->
+        <div style="position:relative;margin-bottom:14px;">
+          <!-- Zoom Controls -->
+          <div style="position:absolute;top:10px;right:10px;z-index:20;display:flex;flex-direction:column;gap:6px;">
+            <button onclick="adminMapZoomIn()" class="map-tool-btn" style="width:34px;height:34px;padding:0;justify-content:center;font-size:18px;font-weight:700;">+</button>
+            <button onclick="adminMapZoomOut()" class="map-tool-btn" style="width:34px;height:34px;padding:0;justify-content:center;font-size:18px;font-weight:700;">−</button>
+            <button onclick="adminMapReset()" id="map-zoom-reset" class="map-tool-btn" style="width:34px;height:34px;padding:0;justify-content:center;display:none;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+          </div>
+          <!-- Scale indicator -->
+          <div id="map-zoom-label" style="position:absolute;top:10px;left:10px;z-index:20;background:rgba(8,9,11,.8);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;display:none;"></div>
+
+          <div class="map-canvas-container" id="map-canvas"
+            style="margin-bottom:0;overflow:hidden;position:relative;cursor:crosshair;min-height:420px;"
+            onmousedown="adminMapMouseDown(event)"
+            onmousemove="adminMapMouseMove(event)"
+            onmouseup="adminMapMouseUp(event)"
+            onmouseleave="adminMapMouseUp(event)"
+            onclick="handleMapClick(event)">
+            <div class="map-no-image" id="map-no-image">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+              <p>Karte wird geladen…</p>
+            </div>
+            <!-- Bild + SVG zusammen im Transform-Layer (wie auf der Stele) -->
+            <div id="map-transform-layer" style="position:absolute;inset:0;transform-origin:center center;pointer-events:none;">
+              <img id="map-img" src="" alt="Geländeplan" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;" onload="onMapImageLoad()" onerror="onMapImageError()" />
+              <!-- SVG-Overlay: viewBox 0 0 100 100 = direkt die gespeicherten % -->
+              <svg id="map-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"
+                style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;display:none;pointer-events:none;">
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs: Punkte / Zonen / Stelen -->
+        <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:0;">
+          <button class="map-tool-btn active" id="subtab-points" onclick="showMapSubtab('points')" style="border-radius:var(--radius-sm) var(--radius-sm) 0 0;border-bottom:none;">
+            Punkte (<span id="points-count">0</span>)
+          </button>
+          <button class="map-tool-btn" id="subtab-zones" onclick="showMapSubtab('zones')" style="border-radius:var(--radius-sm) var(--radius-sm) 0 0;border-bottom:none;">
+            Zoom-Zonen (<span id="zones-count">0</span>)
+          </button>
+          <button class="map-tool-btn" id="subtab-stelen" onclick="showMapSubtab('stelen')" style="border-radius:var(--radius-sm) var(--radius-sm) 0 0;border-bottom:none;">
+            Stelen (<span id="stelen-count">0</span>)
+          </button>
+        </div>
+
+        <!-- Punkte-Liste -->
+        <div id="subtab-content-points">
+          <div class="map-legend" id="map-legend"></div>
+          <div class="map-point-list" id="map-point-list">
+            <div class="empty-state">Noch keine Punkte gesetzt – auf die Karte klicken</div>
+          </div>
+        </div>
+
+        <!-- Zonen-Liste -->
+        <div id="subtab-content-zones" style="display:none;">
+          <div class="map-point-list" id="map-zone-list">
+            <div class="empty-state">Noch keine Zoom-Zonen definiert</div>
+          </div>
+        </div>
+
+        <!-- Stelen-Liste -->
+        <div id="subtab-content-stelen" style="display:none;">
+          <div class="info-box" style="margin-bottom:12px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Jede Stele bekommt eine URL wie <code>?kiosk=stele-eingang</code>. Die Kiosk-App zeigt dann das „Sie sind hier"-Symbol an der richtigen Position.
+          </div>
+          <button class="btn-add" onclick="addStele()" style="margin-bottom:12px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Neue Stele hinzufügen
+          </button>
+          <div class="stele-list" id="stele-list">
+            <div class="empty-state">Noch keine Stelen konfiguriert</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- EXPORT -->
+      <div class="section" id="sec-export">
+        <p class="section-title">Config exportieren</p>
+        <p class="section-sub">Diese JSON auf dem Server als <code style="color:rgba(47,111,94,.7)">/config/kiosk-config.json</code> speichern – alle Stelen übernehmen sie in ≤ 30 Sekunden</p>
+
+        <button class="btn-server-save" id="btn-server-save" onclick="saveToServer()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Direkt auf Server speichern
+        </button>
+
+        <div class="json-box">
+          <pre id="json-preview"></pre>
+          <button class="btn-copy" id="copy-btn" onclick="copyJson()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Kopieren
+          </button>
+        </div>
+
+        <div class="card steps">
+          <p class="card-label">Anleitung (manuell)</p>
+          <ol>
+            <li><span class="num">1</span> JSON oben kopieren</li>
+            <li><span class="num">2</span> Auf dem Webserver <code>public/config/kiosk-config.json</code> öffnen</li>
+            <li><span class="num">3</span> Inhalt ersetzen und speichern</li>
+            <li><span class="num">4</span> Alle Stelen übernehmen die Änderung innerhalb von 30 Sekunden</li>
+          </ol>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /body -->
+
+  <!-- Save bar -->
+  <div class="savebar">
+    <p>Änderungen wirken sofort auf dieser Stele · Alle anderen Stelen: JSON exportieren → Server speichern</p>
+    <button class="btn-save" id="btn-save" onclick="saveLocal()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Auf dieser Stele speichern
+    </button>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  CONFIG – hier anpassen
+// ═══════════════════════════════════════════════════════════════
+const ADMIN_PIN = '4081';
+// ── Server-Endpunkte ─────────────────────────────────────────────────────
+// Netlify (aktuell aktiv):
+const CONFIG_PATH      = 'https://visionary-pothos-7489f7.netlify.app/.netlify/functions/get-config';
+const SAVE_ENDPOINT    = 'https://visionary-pothos-7489f7.netlify.app/.netlify/functions/save-config';
+const UPLOAD_ENDPOINT  = 'https://visionary-pothos-7489f7.netlify.app/.netlify/functions/upload-image';
+// Eigener Server später (auskommentiert):
+// const CONFIG_PATH   = '/config/kiosk-config.json';
+// const SAVE_ENDPOINT = '/config/save-config.php';
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let cfg = {
+  system_mode: 'week',
+  idle_timeout_seconds: 60,
+  slideshow_images: [],
+  scheduled_overrides: [],
+  emergency_type: 'evacuation',
+  emergency_message: null,
+  active_event_id: null,
+  theme_mode: 'dark',
+  map_image_url: '/assets/venue-map.png',
+  map_points: [],
+  map_zones: [],
+  stelen: {}
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  PIN
+// ═══════════════════════════════════════════════════════════════
+const pinInputs = [0,1,2,3].map(i => document.getElementById('p'+i));
+
+pinInputs.forEach((inp, i) => {
+  inp.addEventListener('input', () => {
+    // Nur erste Ziffer behalten
+    const v = inp.value.replace(/\D/g,'').slice(0,1);
+    inp.value = v;
+    inp.classList.toggle('filled', !!v);
+    if (v) {
+      if (i < 3) {
+        pinInputs[i+1].focus();
+      } else {
+        checkPin();
+      }
+    }
+  });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !inp.value && i > 0) {
+      pinInputs[i-1].value = '';
+      pinInputs[i-1].classList.remove('filled');
+      pinInputs[i-1].focus();
+    }
+  });
+  // Beim Fokus immer gesamten Inhalt selektieren
+  inp.addEventListener('click', () => inp.select());
+});
+
+function checkPin() {
+  const pin = pinInputs.map(p => p.value).join('');
+  if (pin === ADMIN_PIN) {
+    sessionStorage.setItem('agra_admin', '1');
+    showApp();
+  } else {
+    pinInputs.forEach(p => p.classList.add('error'));
+    document.getElementById('pin-error').textContent = 'Falscher PIN';
+    setTimeout(() => {
+      pinInputs.forEach(p => { p.value=''; p.classList.remove('filled','error'); });
+      document.getElementById('pin-error').textContent = '';
+      pinInputs[0].focus();
+    }, 700);
+  }
+}
+
+function togglePinVis() {
+  const t = pinInputs[0].type === 'password' ? 'text' : 'password';
+  pinInputs.forEach(p => p.type = t);
+  document.getElementById('pin-show-btn').textContent = t === 'text' ? '🙈 PIN verbergen' : '👁 PIN anzeigen';
+}
+
+function logout() {
+  sessionStorage.removeItem('agra_admin');
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+async function showApp() {
+  document.getElementById('pin-screen').style.display = 'none';
+  const app = document.getElementById('app');
+  app.style.display = 'flex';
+
+  // Config laden: erst Server, dann localStorage-Override
+  // file://-Protokoll kann keine fetch-Requests machen → direkt localStorage
+  if (window.location.protocol === 'file:') {
+    const local = localStorage.getItem('agra_kiosk_config');
+    if (local) try { cfg = { ...cfg, ...JSON.parse(local) }; } catch(e) {}
+    renderAll();
+    return;
+  }
+  try {
+    const res = await fetch(CONFIG_PATH + '?t=' + Date.now());
+    if (res.ok) {
+      const data = await res.json();
+      cfg = { ...cfg, ...data };
+    }
+  } catch(e) {
+    console.warn('Server-Config nicht erreichbar, nutze localStorage');
+    const local = localStorage.getItem('agra_kiosk_config');
+    if (local) cfg = { ...cfg, ...JSON.parse(local) };
+  }
+
+  renderAll();
+  pinInputs[0].focus();
+}
+
+if (sessionStorage.getItem('agra_admin') === '1') {
+  showApp();
+} else {
+  document.getElementById('pin-screen').style.display = 'flex';
+  setTimeout(() => { pinInputs[0].focus(); pinInputs[0].select(); }, 100);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════
+const MODE_LABELS = { week: 'Wochenmodus', event: 'Eventmodus', emergency: 'NOTFALL' };
+const MODE_COLORS = {
+  week:      { color: 'var(--primary)', border: 'var(--primary-bd)', bg: 'var(--primary-bg)' },
+  event:     { color: 'var(--blue)',    border: 'var(--blue-bd)',    bg: 'var(--blue-bg)' },
+  emergency: { color: 'var(--red)',     border: 'var(--red-bd)',     bg: 'var(--red-bg)' },
+};
+
+function renderAll() {
+  // Badge
+  const mc = MODE_COLORS[cfg.system_mode] || MODE_COLORS.week;
+  const badge = document.getElementById('mode-badge');
+  badge.style.color = mc.color;
+  badge.style.borderColor = mc.border;
+  badge.style.background = mc.bg;
+  document.getElementById('badge-label').textContent = MODE_LABELS[cfg.system_mode] || cfg.system_mode;
+
+  // Mode buttons
+  ['week','event','emergency'].forEach(m => {
+    document.querySelector('.mode-btn.'+m)?.classList.toggle('selected', cfg.system_mode === m);
+  });
+
+  // Emergency warn
+  document.getElementById('emergency-warn').classList.toggle('show', cfg.system_mode === 'emergency');
+
+  // Emergency type
+  ['evacuation','weather','security','general'].forEach(t => {
+    document.getElementById('etype-'+t)?.classList.toggle('selected', cfg.emergency_type === t);
+  });
+
+  // Emergency message
+  document.getElementById('emergency-message').value = cfg.emergency_message || '';
+
+  // Theme
+  const themeSelect = document.getElementById('theme-mode');
+  if (themeSelect) themeSelect.value = cfg.theme_mode || 'dark';
+
+  // Timeout
+  renderTimeout();
+
+  // Images
+  renderImages();
+
+  // JSON preview
+  renderJson();
+
+  // Zeitplan
+  renderSchedule();
+}
+
+function renderTimeout() {
+  const v = cfg.idle_timeout_seconds || 60;
+  document.getElementById('timeout-val').textContent = v + 's';
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.textContent) === v);
+  });
+}
+
+function renderImages() {
+  const list = document.getElementById('img-list');
+  const imgs = cfg.slideshow_images || [];
+  if (imgs.length === 0) {
+    list.innerHTML = '<div class="empty-state"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Keine Bilder konfiguriert – Fallback-Bilder werden verwendet</div>';
+    return;
+  }
+  list.innerHTML = imgs.map((img, i) => `
+    <div class="img-row">
+      <img class="img-thumb" src="${escHtml(img.url)}" onerror="this.style.opacity='.2'" />
+      <span class="img-url">${escHtml(img.url)}</span>
+      <button class="img-del" onclick="removeImage(${i})" title="Entfernen">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+// ── Upload ───────────────────────────────────────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) uploadFile(file);
+}
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) uploadFile(file);
+  e.target.value = '';
+}
+
+async function uploadFile(file) {
+  const MAX = 4 * 1024 * 1024;
+  if (file.size > MAX) { alert('Bild zu groß (max 4 MB)'); return; }
+
+  const prog = document.getElementById('upload-progress');
+  prog.textContent = '⏳ Wird hochgeladen...';
+  prog.classList.add('show');
+
+  try {
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    const resp = await fetch(UPLOAD_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _pin: ADMIN_PIN, imageData: base64, mimeType: file.type, filename: file.name })
+    });
+    const result = await resp.json();
+
+    if (result.success) {
+      var absoluteImageUrl = result.imageUrl.startsWith('http')
+        ? result.imageUrl
+        : 'https://visionary-pothos-7489f7.netlify.app' + result.imageUrl;
+      cfg.slideshow_images = [...(cfg.slideshow_images || []), { url: absoluteImageUrl }];
+      renderImages();
+      renderJson();
+      prog.textContent = '✓ Hochgeladen!';
+      prog.style.background = 'var(--primary-bg)';
+      prog.style.borderColor = 'var(--primary-bd)';
+      setTimeout(() => { prog.classList.remove('show'); prog.style.background=''; prog.style.borderColor=''; }, 2500);
+    } else {
+      throw new Error(result.error || 'Unbekannter Fehler');
+    }
+  } catch(err) {
+    prog.textContent = '⚠ Fehler: ' + err.message;
+    prog.style.background = 'var(--red-bg)';
+    prog.style.borderColor = 'var(--red-bd)';
+    prog.style.color = 'var(--red)';
+    setTimeout(() => { prog.classList.remove('show'); prog.style.background=''; prog.style.borderColor=''; prog.style.color=''; }, 4000);
+  }
+}
+
+// ── Zeitplan ─────────────────────────────────────────────────────────────────
+const DAY_LABELS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+
+function renderSchedule() {
+  var list = document.getElementById('schedule-list');
+  if (!list) return;
+  var entries = cfg.scheduled_overrides || [];
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="empty-state" style="margin-bottom:0">Keine Zeitplan-Einträge</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i];
+    var dayChips = '';
+    for (var di = 0; di < DAY_LABELS.length; di++) {
+      var isActive = (entry.days || []).indexOf(di) !== -1;
+      dayChips += '<button class="day-chip' + (isActive ? ' active' : '') + '" onclick="toggleDay(' + i + ',' + di + ')">' + DAY_LABELS[di] + '</button>';
+    }
+    html += '<div class="schedule-row">';
+    html += '<div class="row-top">';
+    html += '<img class="img-thumb" src="' + escHtml(entry.imageUrl) + '" onerror="this.style.opacity=0.2" />';
+    html += '<span class="row-label">' + escHtml(entry.label || 'Kein Name') + '</span>';
+    html += '<button class="row-del" onclick="removeScheduleEntry(' + i + ')" title="Entfernen">';
+    html += '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+    html += '</button></div>';
+    html += '<div class="day-chips">' + dayChips + '</div>';
+    html += '<div class="time-row">';
+    html += '<label>Von</label>';
+    html += '<input class="time-input" type="time" value="' + (entry.timeFrom || '08:00') + '" onchange="updateScheduleTime(' + i + ', 0, this.value)" />';
+    html += '<label>bis</label>';
+    html += '<input class="time-input" type="time" value="' + (entry.timeTo || '20:00') + '" onchange="updateScheduleTime(' + i + ', 1, this.value)" />';
+    html += '</div></div>';
+  }
+  list.innerHTML = html;
+}
+function addScheduleEntry() {
+  var imgs = cfg.slideshow_images || [];
+  var imageUrl = '';
+  if (imgs.length > 0) {
+    var options = '';
+    for (var i = 0; i < imgs.length; i++) {
+      options += (i+1) + ': ' + imgs[i].url.slice(0,60) + '\n';
+    }
+    var choice = prompt('Welches Bild?\nNummer eingeben oder URL eintippen:\n' + options);
+    if (!choice) return;
+    var num = parseInt(choice);
+    if (!isNaN(num) && num >= 1 && num <= imgs.length) {
+      imageUrl = imgs[num-1].url;
+    } else {
+      imageUrl = choice.trim();
+    }
+  } else {
+    imageUrl = prompt('Bild-URL fuer diesen Zeitplan-Eintrag:');
+    if (!imageUrl) return;
+  }
+  var label = prompt('Name fuer diesen Eintrag:', 'Neuer Zeitplan') || 'Neuer Zeitplan';
+  if (!cfg.scheduled_overrides) cfg.scheduled_overrides = [];
+  cfg.scheduled_overrides.push({ label: label, imageUrl: imageUrl.trim(), days: [], timeFrom: '08:00', timeTo: '20:00' });
+  renderSchedule();
+  renderJson();
+}
+function removeScheduleEntry(i) {
+  cfg.scheduled_overrides.splice(i, 1);
+  renderSchedule(); renderJson();
+}
+function toggleDay(entryIdx, day) {
+  const entry = cfg.scheduled_overrides[entryIdx];
+  if (!entry.days) entry.days = [];
+  const idx = entry.days.indexOf(day);
+  if (idx === -1) entry.days.push(day);
+  else entry.days.splice(idx, 1);
+  renderSchedule(); renderJson();
+}
+function updateScheduleTime(entryIdx, fieldIdx, value) {
+  var field = fieldIdx === 0 ? 'timeFrom' : 'timeTo';
+  cfg.scheduled_overrides[entryIdx][field] = value;
+  renderJson();
+}
+
+function renderJson() {
+  const clean = {...cfg};
+  delete clean._comment;
+  document.getElementById('json-preview').textContent = JSON.stringify(clean, null, 2);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════════════════════
+function setMode(m) {
+  cfg.system_mode = m;
+  renderAll();
+}
+function setEtype(t) {
+  cfg.emergency_type = t;
+  renderAll();
+}
+function setThemeMode(mode) {
+  cfg.theme_mode = mode === 'light' ? 'light' : 'dark';
+  renderJson();
+}
+function adjustTimeout(delta) {
+  cfg.idle_timeout_seconds = Math.max(10, Math.min(300, (cfg.idle_timeout_seconds||60) + delta));
+  renderTimeout();
+  renderJson();
+}
+function setTimeout2(v) {
+  cfg.idle_timeout_seconds = v;
+  renderTimeout();
+  renderJson();
+}
+function addImage() {
+  const inp = document.getElementById('new-img-url');
+  const url = inp.value.trim();
+  if (!url) return;
+  cfg.slideshow_images = [...(cfg.slideshow_images||[]), { url }];
+  inp.value = '';
+  renderImages();
+  renderJson();
+}
+function removeImage(i) {
+  cfg.slideshow_images.splice(i, 1);
+  renderImages();
+  renderJson();
+}
+
+// Lokale Speicherung (wirkt sofort auf diese Stele/Browser)
+function saveLocal() {
+  const clean = {...cfg}; delete clean._comment;
+  localStorage.setItem('agra_kiosk_config', JSON.stringify(clean));
+  const btn = document.getElementById('btn-save');
+  btn.classList.add('saved');
+  btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Gespeichert!';
+  setTimeout(() => {
+    btn.classList.remove('saved');
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Auf dieser Stele speichern';
+  }, 2500);
+}
+
+// JSON kopieren
+function copyJson() {
+  const clean = {...cfg}; delete clean._comment;
+  navigator.clipboard.writeText(JSON.stringify(clean, null, 2)).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.classList.add('copied');
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Kopiert!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Kopieren';
+    }, 2500);
+  });
+}
+
+// Direkt auf Server speichern (funktioniert nur wenn die Datei per PUT schreibbar ist)
+// Für statische Server: JSON kopieren und manuell einfügen (Standard-Workflow)
+async function saveToServer() {
+  const btn = document.getElementById('btn-server-save');
+  const clean = {...cfg}; delete clean._comment;
+
+  // PIN wird mitgeschickt – der Server prüft ihn erneut
+  const payload = { ...clean, _pin: ADMIN_PIN };
+
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Speichern...';
+  try {
+    const res = await fetch(SAVE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (res.ok && result.success) {
+      btn.innerHTML = '✓ Gespeichert – Stelen übernehmen in ≤ 30s';
+      btn.style.color = 'var(--primary)';
+      btn.style.borderColor = 'var(--primary-bd)';
+      btn.style.background = 'var(--primary-bg)';
+    } else {
+      throw new Error(result.error || 'Status ' + res.status);
+    }
+  } catch(e) {
+    btn.innerHTML = '⚠ Fehler: ' + e.message + ' – JSON manuell kopieren';
+    btn.style.color = 'var(--text2)';
+    console.error('saveToServer:', e);
+  }
+  btn.disabled = false;
+  setTimeout(() => {
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Direkt auf Server speichern';
+    btn.style.color = ''; btn.style.borderColor = ''; btn.style.background = '';
+  }, 5000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GELÄNDEPLAN MODULE
+// ═══════════════════════════════════════════════════════════════
+
+const MAP_TYPES = [
+  { key: 'halls',      label: 'Hallen',      color: '#2F6F5E' },
+  { key: 'parking',    label: 'Parkplatz',   color: '#60A5FA' },
+  { key: 'sanitary',   label: 'Toiletten',   color: '#4ADE80' },
+  { key: 'admin',      label: 'Verwaltung',  color: '#FBBF24' },
+  { key: 'gastronomy', label: 'Gastronomie', color: '#FB923C' },
+  { key: 'entrance',   label: 'Eingang',     color: '#A78BFA' },
+  { key: 'firstaid',   label: 'Erste Hilfe', color: '#F87171' },
+  { key: 'info',       label: 'Info',        color: '#38BDF8' },
+  { key: 'other',      label: 'Sonstiges',   color: '#94A3B8' },
+];
+
+let mapTool = 'point';          // 'point' | 'zone' | 'stele'
+let pendingMapClick = null;     // {x, y} percent coords waiting for modal
+let pickingSteleId = null;      // stele-id currently being positioned
+let activeMapSubtab = 'points';
+
+// Ensure cfg has map fields
+const MAP_IMAGE_URL = '/assets/venue-map.png';
+function ensureMapCfg() {
+  cfg.map_image_url = MAP_IMAGE_URL;
+  if (!cfg.map_points) cfg.map_points = [];
+  if (!cfg.map_zones)  cfg.map_zones  = [];
+  if (!cfg.stelen)     cfg.stelen     = {};
+}
+
+// ── Tool selection ────────────────────────────────────────────
+function setMapTool(tool) {
+  mapTool = tool;
+  pickingSteleId = null;
+  document.getElementById('tool-point').classList.toggle('active',   tool === 'point');
+  document.getElementById('tool-zone').classList.toggle('zone-active', tool === 'zone');
+  document.getElementById('tool-stele').classList.toggle('stele-active', tool === 'stele');
+  document.getElementById('tool-point').classList.toggle('active',   tool === 'point');
+  // Remove non-matching actives
+  if (tool !== 'point') document.getElementById('tool-point').classList.remove('active');
+  if (tool !== 'zone')  document.getElementById('tool-zone').classList.remove('zone-active');
+  if (tool !== 'stele') document.getElementById('tool-stele').classList.remove('stele-active');
+
+  const hint = document.getElementById('map-hint');
+  const canvas = document.getElementById('map-canvas');
+  canvas.className = 'map-canvas-container';
+  if (tool === 'point') {
+    hint.textContent = '📍 Auf die Karte klicken um einen Punkt zu setzen';
+    hint.classList.add('show');
+    canvas.classList.add('mode-point');
+  } else if (tool === 'zone') {
+    hint.textContent = '🔍 Auf die Karte klicken um eine Zoom-Zone zu setzen';
+    hint.classList.add('show');
+    canvas.classList.add('mode-zoom');
+  } else if (tool === 'stele') {
+    hint.textContent = '📱 Stele aus der Liste auswählen, dann auf Karte klicken';
+    hint.classList.add('show');
+    canvas.classList.add('mode-stele');
+    showMapSubtab('stelen');
+  }
+}
+
+// ── Admin-Karte Zoom-State ────────────────────────────────────
+let adminMapScale  = 1;
+let adminMapOffset = { x: 0, y: 0 };
+let adminMapDrag   = null; // { startX, startY, startOx, startOy }
+let adminMapDidDrag = false;
+
+function adminMapClamp(ox, oy, sc) {
+  const max = Math.max(0, (sc - 1) * 400);
+  return { x: Math.max(-max, Math.min(max, ox)), y: Math.max(-max, Math.min(max, oy)) };
+}
+
+function adminMapApply(newScale, ox, oy, animate) {
+  const c = adminMapClamp(ox, oy, newScale);
+  adminMapScale  = newScale;
+  adminMapOffset = c;
+  const layer = document.getElementById('map-transform-layer');
+  if (layer) {
+    layer.style.transition = animate ? 'transform .35s cubic-bezier(.25,.46,.45,.94)' : 'none';
+    layer.style.transform  = `translate(${c.x}px,${c.y}px) scale(${newScale})`;
+  }
+  const lbl = document.getElementById('map-zoom-label');
+  const rst = document.getElementById('map-zoom-reset');
+  if (lbl) { lbl.textContent = Math.round(newScale*100)+'%'; lbl.style.display = newScale!==1||c.x!==0||c.y!==0 ? 'block':'none'; }
+  if (rst) rst.style.display = newScale!==1||c.x!==0||c.y!==0 ? 'flex':'none';
+  // SVG bewegt sich mit dem Transform-Layer mit – kein Re-Render nötig
+}
+
+function adminMapZoomIn()  { adminMapApply(Math.min(adminMapScale+0.5, 6), adminMapOffset.x, adminMapOffset.y, true); }
+function adminMapZoomOut() {
+  const next = Math.max(adminMapScale-0.5, 1);
+  if (next <= 1) { adminMapReset(); return; }
+  const c = adminMapClamp(adminMapOffset.x, adminMapOffset.y, next);
+  adminMapApply(next, c.x, c.y, true);
+}
+function adminMapReset() { adminMapApply(1, 0, 0, true); }
+
+// Mausrad-Zoom
+document.addEventListener('DOMContentLoaded', function() {
+  const canvas = document.getElementById('map-canvas');
+  if (canvas) {
+    canvas.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      const img = document.getElementById('map-img');
+      if (img.style.display === 'none') return;
+      const rect   = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left - rect.width  / 2;
+      const mouseY = e.clientY - rect.top  - rect.height / 2;
+      const delta  = e.deltaY < 0 ? 0.2 : -0.2;
+      const newScale = Math.max(1, Math.min(6, adminMapScale + delta));
+      // Zoom zum Mauszeiger hin
+      const scaleDiff = newScale - adminMapScale;
+      const ox = adminMapOffset.x - mouseX * scaleDiff;
+      const oy = adminMapOffset.y - mouseY * scaleDiff;
+      adminMapApply(newScale, ox, oy, false);
+    }, { passive: false });
+  }
+});
+
+// Drag
+function adminMapMouseDown(e) {
+  if (e.button !== 0) return;
+  adminMapDrag    = { startX: e.clientX, startY: e.clientY, startOx: adminMapOffset.x, startOy: adminMapOffset.y };
+  adminMapDidDrag = false;
+  document.getElementById('map-canvas').style.cursor = 'grabbing';
+}
+function adminMapMouseMove(e) {
+  if (!adminMapDrag) return;
+  const dx = e.clientX - adminMapDrag.startX;
+  const dy = e.clientY - adminMapDrag.startY;
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) adminMapDidDrag = true;
+  adminMapApply(adminMapScale, adminMapDrag.startOx + dx, adminMapDrag.startOy + dy, false);
+  document.getElementById('map-canvas').style.cursor = 'grabbing';
+}
+function adminMapMouseUp(e) {
+  adminMapDrag = null;
+  const tool = mapTool === 'stele' ? 'pointer' : 'crosshair';
+  document.getElementById('map-canvas').style.cursor = tool;
+}
+
+// ── Map image ─────────────────────────────────────────────────
+function renderMapCanvas() {
+  ensureMapCfg();
+  const img    = document.getElementById('map-img');
+  const noImg  = document.getElementById('map-no-image');
+  const svg    = document.getElementById('map-svg');
+  const previewUrl = (document.getElementById('map-preview-url')?.value || '').trim();
+  const url = previewUrl.length > 8 ? previewUrl : null;
+
+  if (url) {
+    // Src kurz leeren damit onload sicher feuert auch wenn URL gleich bleibt
+    img.src = '';
+    noImg.style.display = 'none';
+    svg.style.display   = 'none';
+    img.style.display   = 'block';
+    // Kleines Timeout damit der Browser den src-Reset verarbeitet
+    setTimeout(() => { img.src = url; }, 20);
+  } else {
+    img.src = '';
+    img.style.display = 'none';
+    svg.style.display = 'none';
+    noImg.style.display = 'flex';
+    noImg.innerHTML = `
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3)"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
+      <p style="color:var(--text3);text-align:center;max-width:280px;">
+        Karte kann lokal nicht geladen werden.<br>
+        <span style="font-size:11px;">Netlify-URL oben eintragen um Vorschau zu aktivieren.</span>
+      </p>`;
+  }
+  adminMapApply(adminMapScale, adminMapOffset.x, adminMapOffset.y, false);
+  renderPointList();
+  renderZoneList();
+  renderSteleList();
+}
+
+function onMapImageLoad() {
+  document.getElementById('map-no-image').style.display = 'none';
+  document.getElementById('map-img').style.display = 'block';
+  document.getElementById('map-svg').style.display = 'block';
+  renderMarkers();
+}
+function onMapImageError() {
+  document.getElementById('map-img').style.display = 'none';
+  const noImg = document.getElementById('map-no-image');
+  noImg.style.display = 'flex';
+  noImg.innerHTML = `
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3)"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
+    <p style="color:var(--text3);text-align:center;max-width:280px;">
+      Karte kann lokal nicht geladen werden.<br>
+      <span style="font-size:11px;">Netlify-URL oben eintragen um Vorschau zu aktivieren.</span>
+    </p>`;
+}
+
+// Vorschau-URL (nur Admin-seitig, wird nicht in cfg gespeichert)
+function onMapPreviewUrlChange(url) {
+  // In localStorage merken damit sie beim nächsten Öffnen noch da ist
+  if (url && url.trim().length > 8) {
+    localStorage.setItem('agra_map_preview_url', url.trim());
+  }
+  renderMapCanvas();
+}
+
+// ── Koordinaten-Umrechnung (berücksichtigt object-contain) ────
+function getAdminImgRect() {
+  const canvas = document.getElementById('map-canvas');
+  const img    = document.getElementById('map-img');
+  if (!canvas || !img || !img.naturalWidth) return null;
+  const cW = canvas.offsetWidth;
+  const cH = canvas.offsetHeight;
+  const iW = img.naturalWidth;
+  const iH = img.naturalHeight;
+  const containerRatio = cW / cH;
+  const imageRatio     = iW / iH;
+  let imgW, imgH;
+  if (imageRatio > containerRatio) {
+    imgW = cW; imgH = cW / imageRatio;
+  } else {
+    imgH = cH; imgW = cH * imageRatio;
+  }
+  return { left: (cW-imgW)/2, top: (cH-imgH)/2, width: imgW, height: imgH, cW, cH };
+}
+
+function adminToPercent(clientX, clientY) {
+  const canvas = document.getElementById('map-canvas');
+  if (!canvas) return { x: 50, y: 50 };
+  const rect = canvas.getBoundingClientRect();
+  const cW   = rect.width;
+  const cH   = rect.height;
+  const screenX = clientX - rect.left;
+  const screenY = clientY - rect.top;
+  // Umkehrung des Transforms: screen → unscaled container-px
+  const imgContX = ((screenX - adminMapOffset.x - cW/2) / adminMapScale) + cW/2;
+  const imgContY = ((screenY - adminMapOffset.y - cH/2) / adminMapScale) + cH/2;
+  // Umkehrung object-contain
+  const ir = getAdminImgRect();
+  if (!ir) return { x: Math.round((imgContX/cW)*100*10)/10, y: Math.round((imgContY/cH)*100*10)/10 };
+  const x = Math.round(((imgContX - ir.left) / ir.width)  * 100 * 10) / 10;
+  const y = Math.round(((imgContY - ir.top)  / ir.height) * 100 * 10) / 10;
+  return { x, y };
+}
+
+function adminToScreen(pctX, pctY) {
+  const canvas = document.getElementById('map-canvas');
+  if (!canvas) return { x: 0, y: 0 };
+  const cW = canvas.offsetWidth;
+  const cH = canvas.offsetHeight;
+  const ir = getAdminImgRect() || { left: 0, top: 0, width: cW, height: cH, cW, cH };
+  // Punkt auf dem Bild → position im Container (unscaled)
+  const imgX = ir.left + (pctX / 100) * ir.width;
+  const imgY = ir.top  + (pctY / 100) * ir.height;
+  // Nach Transform
+  return {
+    x: cW/2 + (imgX - cW/2) * adminMapScale + adminMapOffset.x,
+    y: cH/2 + (imgY - cH/2) * adminMapScale + adminMapOffset.y,
+  };
+}
+
+// ── Click handler ─────────────────────────────────────────────
+function handleMapClick(e) {
+  if (adminMapDidDrag) { adminMapDidDrag = false; return; } // war ein Drag, kein Klick
+  ensureMapCfg();
+  const img = document.getElementById('map-img');
+  if (img.style.display === 'none') return;
+
+  const { x, y } = adminToPercent(e.clientX, e.clientY);
+  if (x < 0 || x > 100 || y < 0 || y > 100) return;
+
+  if (mapTool === 'stele' && pickingSteleId) {
+    cfg.stelen[pickingSteleId].you_are_here = { x, y };
+    pickingSteleId = null;
+    document.getElementById('map-hint').textContent = '✓ Position gespeichert';
+    setTimeout(() => setMapTool('stele'), 1500);
+    renderMarkers();
+    renderSteleList();
+    renderJson();
+    return;
+  }
+
+  pendingMapClick = { x, y };
+  openMapModal(mapTool);
+}
+
+// ── Upload map image ──────────────────────────────────────────
+async function uploadMapImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+
+  const MAX = 4 * 1024 * 1024;
+  const prog = document.getElementById('map-upload-progress');
+
+  if (file.size > MAX) {
+    // Large file: warn but allow URL workflow
+    prog.textContent = '⚠ Datei ist ' + (file.size / 1024 / 1024).toFixed(1) + ' MB – zu groß für Netlify Blobs (max 4 MB). Bitte Karte manuell in /public/assets/venue-map.png ablegen und URL unten eingeben.';
+    prog.style.background = 'var(--red-bg)';
+    prog.style.borderColor = 'var(--red-bd)';
+    prog.style.color = 'var(--red)';
+    prog.classList.add('show');
+    setTimeout(() => { prog.classList.remove('show'); prog.style.cssText=''; }, 7000);
+    return;
+  }
+
+  prog.textContent = '⏳ Karte wird hochgeladen...';
+  prog.style.cssText = '';
+  prog.classList.add('show');
+
+  try {
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    const resp = await fetch(UPLOAD_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _pin: ADMIN_PIN, imageData: base64, mimeType: file.type, filename: 'venue-map-' + Date.now() + '.' + file.name.split('.').pop() })
+    });
+    const result = await resp.json();
+    if (result.success) {
+      const url = result.imageUrl.startsWith('http') ? result.imageUrl : 'https://visionary-pothos-7489f7.netlify.app' + result.imageUrl;
+      cfg.map_image_url = url;
+      document.getElementById('map-url-input').value = url;
+      renderMapCanvas();
+      renderJson();
+      prog.textContent = '✓ Karte hochgeladen!';
+      prog.style.background = 'var(--primary-bg)';
+      prog.style.borderColor = 'var(--primary-bd)';
+      setTimeout(() => { prog.classList.remove('show'); prog.style.cssText=''; }, 3000);
+    } else throw new Error(result.error || 'Fehler');
+  } catch(err) {
+    prog.textContent = '⚠ ' + err.message;
+    prog.style.background = 'var(--red-bg)';
+    prog.style.borderColor = 'var(--red-bd)';
+    prog.style.color = 'var(--red)';
+    setTimeout(() => { prog.classList.remove('show'); prog.style.cssText=''; }, 5000);
+  }
+}
+
+// ── Markers render (SVG, wie auf der Stele) ───────────────────
+function renderMarkers() {
+  ensureMapCfg();
+  const svg = document.getElementById('map-svg');
+  if (!svg) return;
+
+  const img = document.getElementById('map-img');
+  if (!img || img.style.display === 'none') { svg.style.display = 'none'; return; }
+  svg.style.display = 'block';
+
+  // SVG leeren
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const R     = 1.4;
+  const FONT  = 1.5;
+  const pts   = cfg.map_points || [];
+  const zones = cfg.map_zones  || [];
+
+  // Kartenpunkte
+  pts.forEach((pt, i) => {
+    const typeInfo = MAP_TYPES.find(t => t.key === pt.type) || MAP_TYPES[MAP_TYPES.length-1];
+    const num = i + 1;
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.style.cursor = 'pointer';
+    g.style.pointerEvents = 'all';
+    g.setAttribute('title', pt.label);
+
+    // Kreis
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', pt.x);
+    circle.setAttribute('cy', pt.y);
+    circle.setAttribute('r', R);
+    circle.setAttribute('fill', typeInfo.color);
+    circle.setAttribute('stroke', 'rgba(0,0,0,0.6)');
+    circle.setAttribute('stroke-width', '0.3');
+    g.appendChild(circle);
+
+    // Nummer
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', pt.x);
+    text.setAttribute('y', pt.y);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'central');
+    text.setAttribute('font-size', FONT);
+    text.setAttribute('font-weight', '700');
+    text.setAttribute('fill', 'white');
+    text.style.pointerEvents = 'none';
+    text.style.userSelect = 'none';
+    text.textContent = num;
+    g.appendChild(text);
+
+    // Löschen per Klick
+    g.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm('Punkt ' + num + ' „' + pt.label + '" löschen?')) {
+        cfg.map_points.splice(i, 1);
+        renderMarkers(); renderPointList(); renderJson();
+      }
+    };
+    svg.appendChild(g);
+  });
+
+  // Zoom-Zonen – nur als kleines Fadenkreuz, kein Label auf Karte
+  zones.forEach((z, i) => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.style.cursor = 'pointer';
+    g.style.pointerEvents = 'all';
+
+    // Fadenkreuz
+    const mkLine = (x1, y1, x2, y2) => {
+      const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      l.setAttribute('x1', x1); l.setAttribute('y1', y1);
+      l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+      l.setAttribute('stroke', '#FACC15');
+      l.setAttribute('stroke-width', '0.4');
+      l.style.pointerEvents = 'none';
+      return l;
+    };
+    g.appendChild(mkLine(z.x - 1.5, z.y, z.x + 1.5, z.y));
+    g.appendChild(mkLine(z.x, z.y - 1.5, z.x, z.y + 1.5));
+
+    // Kleiner Kreis
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', z.x); c.setAttribute('cy', z.y); c.setAttribute('r', '0.6');
+    c.setAttribute('fill', '#FACC15'); c.setAttribute('fill-opacity', '0.8');
+    c.style.pointerEvents = 'none';
+    g.appendChild(c);
+
+    g.onclick = (e) => { e.stopPropagation(); previewZone(i); };
+    svg.appendChild(g);
+  });
+
+  // Stelen-Positionen
+  Object.entries(cfg.stelen || {}).forEach(([id, stele]) => {
+    if (!stele.you_are_here) return;
+    const { x, y } = stele.you_are_here;
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.style.pointerEvents = 'none';
+
+    const outer = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    outer.setAttribute('cx', x); outer.setAttribute('cy', y); outer.setAttribute('r', R + 0.8);
+    outer.setAttribute('fill', 'none'); outer.setAttribute('stroke', '#2F6F5E');
+    outer.setAttribute('stroke-width', '0.4'); outer.setAttribute('opacity', '0.6');
+    g.appendChild(outer);
+
+    const inner = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    inner.setAttribute('cx', x); inner.setAttribute('cy', y); inner.setAttribute('r', R);
+    inner.setAttribute('fill', '#2F6F5E'); inner.setAttribute('stroke', 'white');
+    inner.setAttribute('stroke-width', '0.4');
+    g.appendChild(inner);
+
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('x', x); t.setAttribute('y', y);
+    t.setAttribute('text-anchor', 'middle'); t.setAttribute('dominant-baseline', 'central');
+    t.setAttribute('font-size', FONT - 0.2); t.setAttribute('fill', 'white');
+    t.setAttribute('font-weight', '700'); t.textContent = '★';
+    g.appendChild(t);
+
+    svg.appendChild(g);
+  });
+}
+
+// ── Point list ────────────────────────────────────────────────
+function renderPointList() {
+  ensureMapCfg();
+  const pts = cfg.map_points || [];
+  document.getElementById('points-count').textContent = pts.length;
+
+  // Legend
+  const activeCats = [...new Set(pts.map(p => p.type))];
+  const legend = document.getElementById('map-legend');
+  legend.innerHTML = activeCats.map(k => {
+    const t = MAP_TYPES.find(t => t.key === k) || MAP_TYPES[MAP_TYPES.length-1];
+    return `<div class="map-legend-item"><div class="map-legend-dot" style="background:${t.color}"></div>${t.label}</div>`;
+  }).join('');
+
+  const list = document.getElementById('map-point-list');
+  if (pts.length === 0) {
+    list.innerHTML = '<div class="empty-state">Noch keine Punkte gesetzt – auf die Karte klicken</div>';
+    return;
+  }
+  list.innerHTML = pts.map((pt, i) => {
+    const t = MAP_TYPES.find(t => t.key === pt.type) || MAP_TYPES[MAP_TYPES.length-1];
+    return `<div class="map-point-row">
+      <div class="map-legend-dot" style="background:${t.color};width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.4);flex-shrink:0;"></div>
+      <span style="flex:1;font-size:13px;">${escHtml(pt.label)}</span>
+      <span class="type-badge" style="color:${t.color};background:${t.color}22;border:1px solid ${t.color}44;">${t.label}</span>
+      <span class="coords">${pt.x}%, ${pt.y}%</span>
+      <button class="del-btn" onclick="deleteMapPoint(${i})" title="Löschen">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function deleteMapPoint(i) {
+  if (confirm('Punkt löschen?')) {
+    cfg.map_points.splice(i, 1);
+    renderMarkers(); renderPointList(); renderJson();
+  }
+}
+
+// ── Zone list ─────────────────────────────────────────────────
+function renderZoneList() {
+  ensureMapCfg();
+  const zones = cfg.map_zones || [];
+  document.getElementById('zones-count').textContent = zones.length;
+  const list = document.getElementById('map-zone-list');
+  if (zones.length === 0) {
+    list.innerHTML = '<div class="empty-state">Noch keine Zoom-Zonen definiert</div>';
+    return;
+  }
+  list.innerHTML = zones.map((z, i) => `
+    <div class="map-point-row" style="flex-wrap:wrap;gap:8px;">
+      <span style="font-size:16px;">🔍</span>
+      <span style="flex:1;font-size:13px;min-width:80px;">${escHtml(z.label)}</span>
+      <button onclick="previewZone(${i})" class="map-tool-btn zone-active" style="padding:4px 10px;font-size:12px;">
+        Vorschau
+      </button>
+      <button class="del-btn" onclick="deleteMapZone(${i})" title="Löschen">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+      <div style="width:100%;display:flex;align-items:center;gap:10px;padding-top:4px;">
+        <label style="font-size:11px;color:var(--text3);white-space:nowrap;">Zoom-Faktor: <strong style="color:var(--text)" id="zoom-val-${i}">${z.zoom}×</strong></label>
+        <input type="range" min="1.5" max="5" step="0.5" value="${z.zoom}"
+          oninput="updateZoneZoom(${i}, parseFloat(this.value))"
+          style="flex:1;accent-color:#FACC15;" />
+      </div>
+    </div>`).join('');
+}
+
+function deleteMapZone(i) {
+  if (confirm('Zone löschen?')) {
+    cfg.map_zones.splice(i, 1);
+    renderMarkers(); renderZoneList(); renderJson();
+  }
+}
+
+function previewZone(i) {
+  const zone = cfg.map_zones[i];
+  if (!zone) return;
+  const canvas = document.getElementById('map-canvas');
+  if (!canvas) return;
+  const cW = canvas.offsetWidth;
+  const cH = canvas.offsetHeight;
+  const ir = getAdminImgRect() || { left: 0, top: 0, width: cW, height: cH };
+  const ns  = zone.zoom;
+  const imgX = ir.left + (zone.x / 100) * ir.width;
+  const imgY = ir.top  + (zone.y / 100) * ir.height;
+  const ox = (cW/2 - imgX) * (ns - 1);
+  const oy = (cH/2 - imgY) * (ns - 1);
+  adminMapApply(ns, ox, oy, true);
+  showMapSubtab('zones');
+}
+
+function updateZoneZoom(i, val) {
+  cfg.map_zones[i].zoom = val;
+  const lbl = document.getElementById('zoom-val-' + i);
+  if (lbl) lbl.textContent = val + '×';
+  renderMarkers();
+  renderJson();
+}
+
+// ── Stele list ────────────────────────────────────────────────
+function renderSteleList() {
+  ensureMapCfg();
+  const stelen = cfg.stelen || {};
+  const ids = Object.keys(stelen);
+  document.getElementById('stelen-count').textContent = ids.length;
+  const list = document.getElementById('stele-list');
+  if (ids.length === 0) {
+    list.innerHTML = '<div class="empty-state">Noch keine Stelen konfiguriert</div>';
+    return;
+  }
+  list.innerHTML = ids.map(id => {
+    const s = stelen[id];
+    const pos = s.you_are_here ? s.you_are_here.x + '%, ' + s.you_are_here.y + '%' : 'nicht gesetzt';
+    const isPicking = pickingSteleId === id;
+    return `<div class="stele-row">
+      <div>
+        <div class="stele-name">${escHtml(s.name || id)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;font-family:monospace;">?kiosk=${escHtml(id)}</div>
+      </div>
+      <span class="stele-pos">📍 ${pos}</span>
+      <button class="stele-set-btn${isPicking ? ' picking' : ''}" onclick="startPickStele('${id}')">
+        ${isPicking ? '⬆ Auf Karte klicken' : 'Position setzen'}
+      </button>
+      <button class="del-btn" onclick="deleteStele('${id}')" title="Stele löschen">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function addStele() {
+  pendingMapClick = null;
+  openMapModal('stele-new');
+}
+
+function startPickStele(id) {
+  pickingSteleId = id;
+  setMapTool('stele');
+  document.getElementById('map-hint').textContent = '📱 Jetzt auf die Karte klicken – Position für „' + (cfg.stelen[id].name || id) + '"';
+  renderSteleList();
+}
+
+function deleteStele(id) {
+  if (confirm('Stele „' + (cfg.stelen[id]?.name || id) + '" löschen?')) {
+    delete cfg.stelen[id];
+    renderMarkers(); renderSteleList(); renderJson();
+  }
+}
+
+function clearAllMapPoints() {
+  if (!confirm('Alle Punkte und Zonen löschen?')) return;
+  cfg.map_points = [];
+  cfg.map_zones  = [];
+  renderMarkers(); renderPointList(); renderZoneList(); renderJson();
+}
+
+// ── Subtabs ───────────────────────────────────────────────────
+function showMapSubtab(tab) {
+  activeMapSubtab = tab;
+  ['points','zones','stelen'].forEach(t => {
+    document.getElementById('subtab-content-' + t).style.display = t === tab ? 'block' : 'none';
+    document.getElementById('subtab-' + t).classList.toggle('active', t === tab);
+  });
+}
+
+// ── Modal ─────────────────────────────────────────────────────
+function openMapModal(type) {
+  const modal = document.getElementById('map-modal');
+  const title = document.getElementById('modal-title');
+  const pf    = document.getElementById('modal-point-fields');
+  const zf    = document.getElementById('modal-zone-fields');
+  const sf    = document.getElementById('modal-stele-fields');
+
+  pf.style.display = 'none';
+  zf.style.display = 'none';
+  sf.style.display = 'none';
+
+  if (type === 'point') {
+    title.textContent = 'Punkt hinzufügen';
+    pf.style.display = 'block';
+    document.getElementById('modal-point-label').value = '';
+    // Build type selector
+    const sel = document.getElementById('modal-type-select');
+    let selectedType = 'sanitary';
+    sel.innerHTML = MAP_TYPES.map(t =>
+      `<div class="type-opt${t.key === selectedType ? ' selected' : ''}" style="color:${t.color};border-color:${t.key === selectedType ? t.color : ''}"
+        onclick="selectModalType('${t.key}','${t.color}',this)">${t.label}</div>`
+    ).join('');
+    sel._selected = selectedType;
+
+  } else if (type === 'zone') {
+    title.textContent = 'Zoom-Zone hinzufügen';
+    zf.style.display = 'block';
+    document.getElementById('modal-zone-label').value = '';
+    document.getElementById('modal-zoom-range').value = '2.5';
+    document.getElementById('modal-zoom-val').textContent = '2.5×';
+
+  } else if (type === 'stele' || type === 'stele-new') {
+    title.textContent = 'Stele hinzufügen';
+    sf.style.display = 'block';
+    document.getElementById('modal-stele-id').value = '';
+    document.getElementById('modal-stele-name').value = '';
+  }
+
+  modal.classList.add('show');
+  setTimeout(() => {
+    if (type === 'point') document.getElementById('modal-point-label').focus();
+    else if (type === 'zone') document.getElementById('modal-zone-label').focus();
+    else document.getElementById('modal-stele-id').focus();
+  }, 50);
+}
+
+function selectModalType(key, color, el) {
+  document.querySelectorAll('#modal-type-select .type-opt').forEach(o => {
+    o.classList.remove('selected');
+    o.style.borderColor = '';
+  });
+  el.classList.add('selected');
+  el.style.borderColor = color;
+  document.getElementById('modal-type-select')._selected = key;
+}
+
+function closeMapModal() {
+  document.getElementById('map-modal').classList.remove('show');
+  pendingMapClick = null;
+}
+
+function confirmMapModal() {
+  ensureMapCfg();
+  const pf = document.getElementById('modal-point-fields');
+  const zf = document.getElementById('modal-zone-fields');
+  const sf = document.getElementById('modal-stele-fields');
+
+  if (pf.style.display !== 'none') {
+    // ADD POINT
+    const label = document.getElementById('modal-point-label').value.trim();
+    if (!label) { document.getElementById('modal-point-label').focus(); return; }
+    const type  = document.getElementById('modal-type-select')._selected || 'other';
+    cfg.map_points.push({ id: 'p' + Date.now(), type, label, x: pendingMapClick.x, y: pendingMapClick.y });
+    renderMarkers(); renderPointList(); renderJson();
+
+  } else if (zf.style.display !== 'none') {
+    // ADD ZONE
+    const label = document.getElementById('modal-zone-label').value.trim();
+    if (!label) { document.getElementById('modal-zone-label').focus(); return; }
+    const zoom  = parseFloat(document.getElementById('modal-zoom-range').value);
+    cfg.map_zones.push({ id: 'z' + Date.now(), label, zoom, x: pendingMapClick.x, y: pendingMapClick.y });
+    renderMarkers(); renderZoneList(); renderJson();
+
+  } else if (sf.style.display !== 'none') {
+    // ADD STELE
+    let id   = document.getElementById('modal-stele-id').value.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-');
+    const name = document.getElementById('modal-stele-name').value.trim();
+    if (!id)   { document.getElementById('modal-stele-id').focus(); return; }
+    if (!name) { document.getElementById('modal-stele-name').focus(); return; }
+    if (cfg.stelen[id]) { alert('Diese Stelen-ID existiert bereits.'); return; }
+    cfg.stelen[id] = { name, you_are_here: null };
+    renderSteleList(); renderJson();
+  }
+
+  closeMapModal();
+  showMapSubtab(activeMapSubtab);
+}
+
+// Close modal on overlay click + Enter key in modal inputs
+// → wrapped in DOMContentLoaded because modal HTML is after this script tag
+document.addEventListener('DOMContentLoaded', function() {
+  const modalOverlay = document.getElementById('map-modal');
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', function(e) {
+      if (e.target === this) closeMapModal();
+    });
+  }
+  ['modal-point-label','modal-zone-label','modal-stele-id','modal-stele-name'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') confirmMapModal(); });
+  });
+});
+
+// ── Init map section when shown ───────────────────────────────
+// (handled inside showSection below)
+
+// ═══════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function showSection(key, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-'+key).classList.add('active');
+  btn.classList.add('active');
+  if (key === 'export')   renderJson();
+  if (key === 'schedule') renderSchedule();
+  if (key === 'map') {
+    ensureMapCfg();
+    // Vorschau-URL aus localStorage wiederherstellen
+    const input = document.getElementById('map-preview-url');
+    if (input && !input.value) {
+      const saved = localStorage.getItem('agra_map_preview_url');
+      if (saved) input.value = saved;
+    }
+    const previewUrl = document.getElementById('map-preview-url')?.value?.trim();
+    if (previewUrl) onMapPreviewUrlChange(previewUrl);
+    renderMapCanvas();
+  }
+}
+</script>
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL – Punkt / Zone / Stele anlegen
+══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="map-modal">
+  <div class="modal-box">
+    <p class="modal-title" id="modal-title">Punkt hinzufügen</p>
+
+    <!-- Punkt-Felder -->
+    <div id="modal-point-fields">
+      <div class="modal-field">
+        <label>Bezeichnung</label>
+        <input type="text" id="modal-point-label" placeholder="z.B. Toiletten Halle 2" />
+      </div>
+      <div class="modal-field">
+        <label>Kategorie</label>
+        <div class="type-select" id="modal-type-select"></div>
+      </div>
+    </div>
+
+    <!-- Zone-Felder -->
+    <div id="modal-zone-fields" style="display:none;">
+      <div class="modal-field">
+        <label>Zonenname</label>
+        <input type="text" id="modal-zone-label" placeholder="z.B. Eingangsbereich" />
+      </div>
+      <div class="modal-field">
+        <label>Zoom-Faktor: <span id="modal-zoom-val">2.5×</span></label>
+        <input type="range" id="modal-zoom-range" min="1.5" max="5" step="0.5" value="2.5"
+          oninput="document.getElementById('modal-zoom-val').textContent = this.value + '×'"
+          style="width:100%;accent-color:var(--primary);margin-top:4px;" />
+      </div>
+    </div>
+
+    <!-- Stele-Felder -->
+    <div id="modal-stele-fields" style="display:none;">
+      <div class="modal-field">
+        <label>Stelen-ID (URL-Parameter)</label>
+        <input type="text" id="modal-stele-id" placeholder="z.B. stele-eingang-nord" />
+        <p style="font-size:11px;color:var(--text3);margin-top:4px;">Nur Kleinbuchstaben, Zahlen und Bindestriche. Wird zu <code style="color:rgba(47,111,94,.7)">?kiosk=…</code></p>
+      </div>
+      <div class="modal-field">
+        <label>Anzeigename</label>
+        <input type="text" id="modal-stele-name" placeholder="z.B. Eingang Nord" />
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeMapModal()">Abbrechen</button>
+      <button class="btn-confirm" onclick="confirmMapModal()">Hinzufügen</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -4,6 +4,7 @@ const ALLOWED_FIELDS = [
   'system_mode', 'idle_timeout_seconds', 'slideshow_images',
   'scheduled_overrides', 'emergency_type', 'emergency_message', 'active_event_id',
   'map_image_url', 'map_points', 'map_zones', 'stelen',
+  'theme_mode'
 ];
 
 const DEFAULTS = {
@@ -11,6 +12,7 @@ const DEFAULTS = {
   scheduled_overrides: [], emergency_type: 'evacuation',
   emergency_message: null, active_event_id: null,
   map_image_url: '/assets/venue-map.png', map_points: [], map_zones: [], stelen: {},
+  theme_mode: 'dark'
 };
 
 const CORS = {
@@ -41,14 +43,6 @@ export async function handler(event) {
     if (field in data) config[field] = data[field];
   }
 
-  if (!['week', 'event', 'emergency'].includes(config.system_mode)) config.system_mode = 'week';
-  config.idle_timeout_seconds = Math.max(10, Math.min(300, Number(config.idle_timeout_seconds) || 60));
-  if (!Array.isArray(config.slideshow_images))    config.slideshow_images    = [];
-  if (!Array.isArray(config.scheduled_overrides)) config.scheduled_overrides = [];
-  if (!Array.isArray(config.map_points))          config.map_points          = [];
-  if (!Array.isArray(config.map_zones))           config.map_zones           = [];
-  if (typeof config.stelen !== 'object' || Array.isArray(config.stelen)) config.stelen = {};
-
   try {
     const { getStore } = await import('@netlify/blobs');
     const store = getStore({
@@ -64,6 +58,6 @@ export async function handler(event) {
   return {
     statusCode: 200,
     headers: CORS,
-    body: JSON.stringify({ success: true, message: 'Config saved.', config }),
+    body: JSON.stringify({ success: true, config }),
   };
 }
