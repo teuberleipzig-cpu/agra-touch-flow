@@ -34,9 +34,10 @@ function getKioskId() {
 export default function VenueMapPage() {
   const { t, config } = useKiosk();
 
-  const mapPoints  = config?.map_points || [];
-  const mapZones   = config?.map_zones  || [];
-  const stelen     = config?.stelen     || {};
+  const mapPoints  = config?.map_points  || [];
+  const mapZones   = config?.map_zones   || [];
+  const stelen     = config?.stelen      || {};
+  const mapImageUrl = config?.map_image_url || '/assets/venue-map.png';
   const kioskId    = getKioskId();
   const youAreHere = kioskId ? (stelen[kioskId]?.you_are_here ?? null) : null;
 
@@ -235,7 +236,7 @@ export default function VenueMapPage() {
           }}
         >
           <img
-            src="/assets/venue-map.png"
+            src={mapImageUrl}
             alt="Geländeplan AGRA Messepark"
             className="absolute inset-0 w-full h-full object-contain"
             draggable={false}

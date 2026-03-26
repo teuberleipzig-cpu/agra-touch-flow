@@ -241,14 +241,15 @@ export function KioskProvider({ children }) {
       if (!isMounted) return;
       setConfig(newConfig);
       setSystemMode(newConfig.system_mode || 'week');
+
+      // Venue-Map vorladen sobald Config bekannt ist (nutzt die konfigurierte URL)
+      const mapUrl = newConfig.map_image_url || '/assets/venue-map.png';
+      const preloadMap = new window.Image();
+      preloadMap.src = mapUrl;
     };
 
     // Sofort beim Start laden
     fetchConfig();
-
-    // Venue-Map vorladen damit sie beim ersten Klick auf Geländeplan sofort da ist
-    const preloadMap = new window.Image();
-    preloadMap.src = '/assets/venue-map.png';
 
     // Danach alle 30 Sekunden pollen (ermöglicht Modus-Wechsel vom Büro)
     pollTimer = setInterval(fetchConfig, CONFIG_POLL_INTERVAL_MS);
