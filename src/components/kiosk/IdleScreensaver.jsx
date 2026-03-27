@@ -110,7 +110,7 @@ export default function IdleScreensaver() {
           <img
             src={images[currentIndex]}
             alt=""
-            className="w-full h-full object-cover opacity-40"
+            className="w-full h-full object-cover opacity-100"
           />
         </motion.div>
       </AnimatePresence>
