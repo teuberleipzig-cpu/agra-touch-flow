@@ -211,7 +211,7 @@ export function KioskProvider({ children }) {
   const [systemMode, setSystemMode] = useState('week');
   const [config, setConfig] = useState(null);
   const [activeEvent, setActiveEvent] = useState(null);
-  const [isIdle, setIsIdle] = useState(false);
+  const [isIdle, setIsIdle] = useState(true); // Screensaver gesperrt – temporär für Wochenende
   const idleTimer = useRef(null);
   const idleTimeout = config?.idle_timeout_seconds || 60;
   const isDarkMode = (config?.theme_mode || 'dark') !== 'light';
