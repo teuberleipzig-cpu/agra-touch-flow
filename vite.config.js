@@ -2,24 +2,24 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import path from 'path'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
   ],
 
+  // Für GitHub Pages: Repo-Name als base path
+  // Wenn die Seite später auf eigene Domain kommt → diese Zeile entfernen
+  base: '/agra-touch-flow/',
+
   resolve: {
     alias: {
-      // Replaces the implicit alias that @base44/vite-plugin previously injected
       '@': path.resolve(__dirname, './src'),
     },
   },
 
   server: {
     proxy: {
-      // Dev proxy: /api/agra-events → agramessepark.de REST API
-      // Bypasses CORS in development.
-      // In production, Nginx on your server handles this same rewrite.
+      // Dev proxy: nur lokal aktiv, wird im Build ignoriert
       '/api/agra-events': {
         target: 'https://agramessepark.de',
         changeOrigin: true,
