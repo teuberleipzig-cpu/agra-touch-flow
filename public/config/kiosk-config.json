@@ -6,6 +6,7 @@
   "emergency_type": "evacuation",
   "emergency_message": null,
   "active_event_id": null,
+  "map_image_url": "/agra-touch-flow/assets/venue-map.jpg",
   "map_points": [],
   "map_zones": [],
   "stelen": {},
