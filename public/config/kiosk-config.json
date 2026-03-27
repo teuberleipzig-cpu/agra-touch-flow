@@ -2,14 +2,14 @@
   "system_mode": "week",
   "idle_timeout_seconds": 60,
   "slideshow_images": [
-    "/agra-touch-flow/assets/screensaver-1.jpg",
-    "/agra-touch-flow/assets/screensaver-2.jpg",
-    "/agra-touch-flow/assets/screensaver-3.jpg",
-    "/agra-touch-flow/assets/screensaver-4.jpg",
-    "/agra-touch-flow/assets/screensaver-5.jpg",
-    "/agra-touch-flow/assets/screensaver-6.jpg",
-    "/agra-touch-flow/assets/screensaver-7.jpg",
-    "/agra-touch-flow/assets/screensaver-8.jpg"
+    { "url": "/agra-touch-flow/assets/screensaver-1.jpg" },
+    { "url": "/agra-touch-flow/assets/screensaver-2.jpg" },
+    { "url": "/agra-touch-flow/assets/screensaver-3.jpg" },
+    { "url": "/agra-touch-flow/assets/screensaver-4.jpg" },
+    { "url": "/agra-touch-flow/assets/screensaver-5.jpg" },
+    { "url": "/agra-touch-flow/assets/screensaver-6.jpg" },
+    { "url": "/agra-touch-flow/assets/screensaver-7.jpg" },
+    { "url": "/agra-touch-flow/assets/screensaver-8.jpg" }
   ],
   "scheduled_overrides": [],
   "emergency_type": "evacuation",
