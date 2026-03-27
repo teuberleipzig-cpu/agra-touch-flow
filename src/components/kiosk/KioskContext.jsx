@@ -243,9 +243,16 @@ export function KioskProvider({ children }) {
       setSystemMode(newConfig.system_mode || 'week');
 
       // Venue-Map vorladen sobald Config bekannt ist (nutzt die konfigurierte URL)
-      const mapUrl = newConfig.map_image_url || '/assets/venue-map.png';
+      const mapUrl = newConfig.map_image_url || '/assets/venue-map.jpg';
       const preloadMap = new window.Image();
       preloadMap.src = mapUrl;
+
+      // Screensaver-Bilder vorladen damit sie beim ersten Idle sofort da sind
+      const slides = newConfig.slideshow_images || [];
+      slides.forEach(item => {
+        const url = typeof item === 'string' ? item : item?.url;
+        if (url) { const img = new window.Image(); img.src = url; }
+      });
     };
 
     // Sofort beim Start laden
