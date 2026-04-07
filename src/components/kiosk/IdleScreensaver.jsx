@@ -46,7 +46,7 @@ function isOverrideActive(override) {
 }
 
 export default function IdleScreensaver() {
-  const { config } = useKiosk();
+  const { config, resetIdle, setIsIdle } = useKiosk();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeOverride, setActiveOverride] = useState(null);
 
@@ -83,8 +83,10 @@ export default function IdleScreensaver() {
     setCurrentIndex(0);
   }, [activeOverride]);
 
-  // Screensaver gesperrt – kein Touch-Escape (temporär für Wochenende)
-  const handleTouch = () => {};
+  const handleTouch = () => {
+    setIsIdle(false);
+    resetIdle();
+  };
 
   return (
     <motion.div
@@ -108,7 +110,7 @@ export default function IdleScreensaver() {
           <img
             src={images[currentIndex]}
             alt=""
-            className="w-full h-full object-cover opacity-40"
+            className="w-full h-full object-cover opacity-100"
           />
         </motion.div>
       </AnimatePresence>
