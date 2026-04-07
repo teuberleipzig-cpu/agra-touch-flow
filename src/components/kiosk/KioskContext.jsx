@@ -275,8 +275,13 @@ export function KioskProvider({ children }) {
 
   // Idle-Detection (unverändert)
   useEffect(() => {
-    // Idle-Detection deaktiviert – Screensaver gesperrt (temporär für Wochenende)
-    return () => {};
+    const events = ['touchstart', 'mousedown', 'mousemove', 'keydown'];
+    events.forEach(e => window.addEventListener(e, resetIdle));
+    resetIdle();
+    return () => {
+      events.forEach(e => window.removeEventListener(e, resetIdle));
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    };
   }, [resetIdle]);
 
   return (
